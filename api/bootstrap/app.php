@@ -82,6 +82,7 @@ $app->configure('app');
  $app->routeMiddleware([
      'auth' => App\Http\Middleware\Authenticate::class,
      'role' => App\Http\Middleware\RoleMiddleware::class,
+     'CheckRole' => App\Http\Middleware\CheckRoleMiddleware::class,
  ]);
 
 /*
@@ -115,6 +116,9 @@ $app->router->group([
     'namespace' => 'App\Http\Controllers',
 ], function ($router) {
     require __DIR__.'/../routes/web.php';
+    if (file_exists(__DIR__.'/../routes/api.php')) {
+        require __DIR__.'/../routes/api.php';
+    }
 });
 
 return $app;
