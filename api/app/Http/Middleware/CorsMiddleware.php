@@ -8,7 +8,7 @@ class CorsMiddleware
 {
     public function handle($request, Closure $next)
     {
-        $allowedOrigin = 'https://aquaculture.m-tech.fun';
+        $allowedOrigin = '*';
 
         if ($request->getMethod() === 'OPTIONS') {
             return response('', 204)

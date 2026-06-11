@@ -14,7 +14,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
 {
     use Authenticatable, Authorizable, HasFactory;
 
-    protected $fillable = ['role_id', 'name', 'email', 'password'];
+    protected $fillable = ['role_id', 'name', 'email', 'password', 'nomor_hp', 'alamat'];
     protected $hidden = ['password'];
 
     // Relasi ke Role

@@ -1,3 +1,6 @@
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   FaWater,
   FaThermometerHalf,
@@ -6,68 +9,66 @@ import {
   FaWind,
   FaClipboardList,
   FaBoxes,
+  FaChartBar,
 } from "react-icons/fa";
 
+gsap.registerPlugin(ScrollTrigger);
+
+const features = [
+  { icon: <FaWater />, title: "pH Monitoring", desc: "Pemantauan tingkat keasaman air secara real-time untuk menjaga stabilitas budidaya." },
+  { icon: <FaWind />, title: "DO Sensor", desc: "Monitoring dissolved oxygen untuk mendukung kesehatan udang dan ikan." },
+  { icon: <FaThermometerHalf />, title: "Suhu Air", desc: "Pencatatan suhu air secara berkala untuk kontrol lingkungan tambak." },
+  { icon: <FaBroadcastTower />, title: "LoRa Gateway", desc: "Komunikasi data sensor jarak jauh dengan konsumsi daya yang efisien." },
+  { icon: <FaBell />, title: "Early Warning", desc: "Notifikasi dini jika parameter kualitas air melebihi batas aman." },
+  { icon: <FaClipboardList />, title: "Manajemen Tambak", desc: "Pencatatan aktivitas dan kontrol operasional tambak harian." },
+  { icon: <FaBoxes />, title: "Manajemen Produksi", desc: "Pendataan panen, input produksi, dan evaluasi performa budidaya." },
+  { icon: <FaChartBar />, title: "Dashboard Web", desc: "Visualisasi data monitoring yang mudah dibaca oleh petambak dan admin." },
+];
+
 export default function FeatureCards() {
+  const sectionRef = useRef(null);
+  const gridRef = useRef(null);
+
+  useEffect(() => {
+    const cards = gridRef.current.children;
+    gsap.fromTo(
+      cards,
+      { y: 60, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.8,
+        ease: "power3.out",
+        stagger: 0.08,
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+          end: "top 40%",
+          toggleActions: "play none none reverse",
+        },
+      }
+    );
+  }, []);
+
   return (
-    <section id="features" className="featuresSection">
-      <div className="sectionHeading">
-        <p className="eyebrow">Core Features</p>
-        <h2>Solusi Monitoring dan Manajemen Tambak</h2>
-        <p>
-          Sistem ini tidak hanya memantau kualitas air, tetapi juga mendukung
-          manajemen operasional tambak dan pencatatan produksi secara lebih rapi.
+    <section id="features" className="section sectionAlt" ref={sectionRef}>
+      <div className="sectionHeader">
+        <p className="sectionEyebrow">Core Features</p>
+        <h2 className="sectionTitle">Solusi Monitoring & Manajemen Tambak</h2>
+        <p className="sectionSubtitle">
+          Sistem terintegrasi untuk memantau kualitas air, mengelola produksi,
+          dan mengoptimalkan hasil panen udang.
         </p>
       </div>
 
-      <div className="cards">
-        <div className="card">
-          <div className="cardIcon"><FaWater /></div>
-          <h3>pH Monitoring</h3>
-          <p>Pemantauan tingkat keasaman air untuk menjaga stabilitas budidaya.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaWind /></div>
-          <h3>DO Sensor</h3>
-          <p>Monitoring dissolved oxygen untuk mendukung kesehatan udang dan ikan.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaThermometerHalf /></div>
-          <h3>Suhu Air</h3>
-          <p>Pencatatan suhu air secara berkala untuk kontrol lingkungan tambak.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaBroadcastTower /></div>
-          <h3>LoRa Gateway</h3>
-          <p>Komunikasi data sensor jarak jauh dengan konsumsi daya efisien.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaBell /></div>
-          <h3>Early Warning</h3>
-          <p>Notifikasi dini jika parameter kualitas air melebihi batas aman.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaClipboardList /></div>
-          <h3>Manajemen Tambak</h3>
-          <p>Pencatatan aktivitas tambak, kontrol operasional, dan monitoring kondisi lapangan.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaBoxes /></div>
-          <h3>Manajemen Produksi</h3>
-          <p>Pendataan panen, input produksi, hasil budidaya, dan evaluasi performa produksi.</p>
-        </div>
-
-        <div className="card">
-          <div className="cardIcon"><FaBroadcastTower /></div>
-          <h3>Dashboard Web</h3>
-          <p>Visualisasi data monitoring agar mudah dibaca oleh petambak dan admin.</p>
-        </div>
+      <div className="featureGrid" ref={gridRef}>
+        {features.map((f, i) => (
+          <div className="featureCard" key={i}>
+            <div className="featureIcon">{f.icon}</div>
+            <h3>{f.title}</h3>
+            <p>{f.desc}</p>
+          </div>
+        ))}
       </div>
     </section>
   );

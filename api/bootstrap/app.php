@@ -77,12 +77,15 @@ $app->configure('app');
  $app->middleware([
      App\Http\Middleware\ExampleMiddleware::class,
      App\Http\Middleware\CorsMiddleware::class,
+     App\Http\Middleware\SecurityHeadersMiddleware::class,
+     App\Http\Middleware\SanitizeInputMiddleware::class,
  ]);
 
  $app->routeMiddleware([
-     'auth' => App\Http\Middleware\Authenticate::class,
-     'role' => App\Http\Middleware\RoleMiddleware::class,
+     'auth'      => App\Http\Middleware\Authenticate::class,
+     'role'      => App\Http\Middleware\RoleMiddleware::class,
      'CheckRole' => App\Http\Middleware\CheckRoleMiddleware::class,
+     'throttle'  => App\Http\Middleware\RateLimitMiddleware::class,
  ]);
 
 /*
