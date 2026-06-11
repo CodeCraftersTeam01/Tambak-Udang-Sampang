@@ -4,31 +4,32 @@
 
 $router->get('/', function () {
     return response()->json([
-        'status' => 'ok',
-        'service' => 'Aquaculture API',
+        'status'    => 'ok',
+        'service'   => 'Aquaculture API',
         'framework' => app()->version()
     ]);
 });
 
-// Public route
-$router->post('login', 'AuthController@login');
+// Public route — strict rate limit: 5 attempts per minute (brute-force protection)
+$router->group(['middleware' => 'throttle:5,1'], function () use ($router) {
+    $router->post('login', 'AuthController@login');
+});
 
-// Protected routes
-$router->group(['middleware' => 'auth'], function () use ($router) {
+// Protected routes — standard rate limit: 60 requests per minute
+$router->group(['middleware' => ['auth', 'throttle:60,1']], function () use ($router) {
+
+    // Bisa diakses oleh Super Admin ATAU Admin
+    $router->group(['middleware' => 'role:super_admin,admin'], function () use ($router) {
+        $router->get('users', 'UserController@index');
+        $router->post('users', 'UserController@store');
+        $router->get('users/{id}', 'UserController@show');
+        $router->put('users/{id}', 'UserController@update');
+        $router->delete('users/{id}', 'UserController@destroy');
+    });
 
     // Super Admin only
     $router->group(['middleware' => 'role:super_admin'], function () use ($router) {
         $router->post('create-admin', 'AdminController@store');
-        $router->get('users', 'UserController@index');
-    });
-
-    // Bisa diakses oleh Super Admin ATAU Admin
-    $router->group(['middleware' => 'role:super_admin,admin'], function () use ($router) {
-    	$router->get('users', 'UserController@index');
-    	$router->post('users', 'UserController@store');
-    	$router->get('users/{id}', 'UserController@show');
-    	$router->put('users/{id}', 'UserController@update');
-    	$router->delete('users/{id}', 'UserController@destroy');
     });
 
     // Petambak only

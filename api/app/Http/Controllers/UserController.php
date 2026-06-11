@@ -32,14 +32,18 @@ class UserController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'role_id'  => 'required|exists:roles,id'
+            'role_id'  => 'required|exists:roles,id',
+            'nomor_hp' => 'nullable|string|max:20',
+            'alamat'   => 'nullable|string'
         ]);
 
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
             'password' => Hash::make($request->password),
-            'role_id'  => $request->role_id
+            'role_id'  => $request->role_id,
+            'nomor_hp' => $request->nomor_hp,
+            'alamat'   => $request->alamat
         ]);
 
         return response()->json([
@@ -87,7 +91,9 @@ class UserController extends Controller
             'name'     => 'sometimes|string|max:255',
             'email'    => 'sometimes|email|unique:users,email,' . $id,
             'password' => 'sometimes|min:6',
-            'role_id'  => 'sometimes|exists:roles,id'
+            'role_id'  => 'sometimes|exists:roles,id',
+            'nomor_hp' => 'nullable|string|max:20',
+            'alamat'   => 'nullable|string'
         ]);
 
         $user->name = $request->name ?? $user->name;
@@ -99,6 +105,14 @@ class UserController extends Controller
 
         if ($request->role_id) {
             $user->role_id = $request->role_id;
+        }
+
+        if ($request->has('nomor_hp')) {
+            $user->nomor_hp = $request->nomor_hp;
+        }
+
+        if ($request->has('alamat')) {
+            $user->alamat = $request->alamat;
         }
 
         $user->save();
