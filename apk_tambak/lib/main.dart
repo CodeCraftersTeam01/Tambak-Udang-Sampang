@@ -14,12 +14,15 @@ import 'presentation/bloc/auth_event.dart';
 import 'presentation/bloc/kolam_bloc.dart';
 import 'presentation/ui/login_screen.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final SecureStorage globalSecureStorage = SecureStorage();
 late final ApiClient globalApiClient;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp();
   await FirebaseMessaging.instance.requestPermission();

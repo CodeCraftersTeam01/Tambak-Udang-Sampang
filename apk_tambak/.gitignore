@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Security & AI Context Files
+.env
+.clinerules
+agent.md
+design.md
+api_contract.md
+tasks.md
