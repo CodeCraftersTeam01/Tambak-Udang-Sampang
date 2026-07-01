@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import apiClient from "../../core/network/apiClient";
 import {
   FaHome,
   FaWater,
@@ -23,9 +24,15 @@ export default function DashboardLayout({ children, title }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await apiClient.post("/auth/logout");
+    } catch (e) {
+      console.error("Logout error", e);
+    } finally {
+      localStorage.removeItem("token");
+      navigate("/");
+    }
   };
 
   const getInitials = () => {

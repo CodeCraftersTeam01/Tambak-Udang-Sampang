@@ -5,8 +5,18 @@
 // ── Public Routes ──
 $router->get('api/public/usia-benur', 'ProduksiController@publicUsiaBenur');
 
+// ── Auth Routes ──
+$router->group(['prefix' => 'api/auth', 'middleware' => 'throttle:5,1'], function () use ($router) {
+    $router->post('login', 'AuthController@login');
+    $router->post('register', 'AuthController@register');
+});
+
 // ── Semua API route dilindungi JWT + rate limiting ──
 $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], function () use ($router) {
+
+    // Logout & Me
+    $router->post('auth/logout', 'AuthController@logout');
+    $router->get('auth/me', 'AuthController@me');
 
     // Kolam CRUD
     $router->get('kolam',          'KolamController@index');
@@ -17,6 +27,8 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
     $router->delete('kolam/{id}',  'KolamController@destroy');
 
     // Produksi CRUD
+    $router->get('produksi/log/{kolam_id}', 'ProduksiLogController@index');
+    $router->post('produksi/log',    'ProduksiLogController@store');
     $router->get('produksi',         'ProduksiController@index');
     $router->post('produksi',        'ProduksiController@store');
     $router->get('produksi/{id}',    'ProduksiController@show');
@@ -41,4 +53,7 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
     $router->put('panen/{id}',       'PanenController@update');
     $router->patch('panen/{id}',     'PanenController@update');
     $router->delete('panen/{id}',    'PanenController@destroy');
+
+    // Laporan
+    $router->get('laporan/{kolam_id}', 'LaporanController@show');
 });

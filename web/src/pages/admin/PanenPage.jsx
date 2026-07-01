@@ -7,7 +7,7 @@ import { Bar, Pie } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 import DashboardLayout from "../../components/admin/DashboardLayout";
-import API_URL from "../../services/api";
+import apiClient from "../../core/network/apiClient";
 
 const empty = { tanggal_panen: "", jumlah_panen_kg: "", jenis_panen: "parsial", kolam_id: "" };
 const COLORS = ["#0071e3", "#30d158", "#ff9f0a", "#ff3b30", "#5e5ce6"];
@@ -22,15 +22,17 @@ function PanenModal({ mode, data, kolams, onClose, onSaved }) {
     data ? { tanggal_panen: data.tanggal_panen?.slice(0, 10) || "", jumlah_panen_kg: data.jumlah_panen_kg, jenis_panen: data.jenis_panen, kolam_id: String(data.kolam_id) } : empty
   );
   const [saving, setSaving] = useState(false);
-  const token = localStorage.getItem("token");
-
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      const url = mode === "edit" ? `${API_URL}/api/panen/${data.id}` : `${API_URL}/api/panen`;
-      const res = await fetch(url, { method: mode === "edit" ? "PUT" : "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, Accept: "application/json" }, body: JSON.stringify(form) });
-      if (!res.ok) throw new Error();
-      onSaved(mode === "edit" ? "Panen diperbarui!" : "Panen ditambahkan!"); onClose();
+      if (mode === "edit") {
+        await apiClient.put(`/panen/${data.id}`, form);
+        onSaved("Panen diperbarui!");
+      } else {
+        await apiClient.post(`/panen`, form);
+        onSaved("Panen ditambahkan!");
+      }
+      onClose();
     } catch { onSaved("Terjadi kesalahan.", "error"); } finally { setSaving(false); }
   };
 
@@ -85,22 +87,19 @@ export default function PanenPage() {
   const [modal, setModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState(null);
-  const token = localStorage.getItem("token");
-  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [panenRes, kolamRes, statRes] = await Promise.all([
-        fetch(`${API_URL}/api/panen`, { headers }).then((r) => r.json()),
-        fetch(`${API_URL}/api/kolam`, { headers }).then((r) => r.json()),
-        fetch(`${API_URL}/api/panen/statistik`, { headers }).then((r) => r.json()),
+        apiClient.get(`/panen`),
+        apiClient.get(`/kolam`),
+        apiClient.get(`/panen/statistik`),
       ]);
-      setData(panenRes.data || []);
-      setKolams(kolamRes.data || []);
-      setStatistik(statRes.data || null);
+      setData(panenRes.data.data || []);
+      setKolams(kolamRes.data.data || []);
+      setStatistik(statRes.data.data || null);
     } catch { showToast("Gagal memuat data.", "error"); } finally { setLoading(false); }
-  }, [token]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -108,7 +107,7 @@ export default function PanenPage() {
 
   const handleDelete = async () => {
     try {
-      await fetch(`${API_URL}/api/panen/${confirmDelete.id}`, { method: "DELETE", headers });
+      await apiClient.delete(`/panen/${confirmDelete.id}`);
       showToast("Data dihapus!"); fetchData();
     } catch { showToast("Gagal menghapus.", "error"); } finally { setConfirmDelete(null); }
   };

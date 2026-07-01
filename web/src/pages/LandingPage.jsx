@@ -38,7 +38,7 @@ export default function LandingPage() {
       <ThreeBackground />
       <ParallaxBackground />
 
-      <Navbar onLoginClick={() => setShowLogin(true)} />
+      <Navbar onLogin={() => setShowLogin(true)} />
       
       <main>
         <HeroSection onCtaClick={() => setShowLogin(true)} />
