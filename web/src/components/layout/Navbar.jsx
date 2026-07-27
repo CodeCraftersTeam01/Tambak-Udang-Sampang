@@ -1,4 +1,4 @@
-import { FaFish, FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes } from "react-icons/fa";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 
@@ -37,9 +37,10 @@ export default function Navbar({ onLogin }) {
 
       <nav className={`navLinks${open ? " open" : ""}`}>
         <a href="#home" onClick={() => setOpen(false)}>Home</a>
-        <a href="#features" onClick={() => setOpen(false)}>Features</a>
-        <a href="#technology" onClick={() => setOpen(false)}>Technology</a>
-        <a href="#contact" onClick={() => setOpen(false)}>Contact</a>
+        <a href="#features" onClick={() => setOpen(false)}>Fitur</a>
+        <a href="#stats" onClick={() => setOpen(false)}>Data Live</a>
+        <a href="#benur" onClick={() => setOpen(false)}>Status Benur</a>
+        <a href="#contact" onClick={() => setOpen(false)}>Kontak</a>
       </nav>
 
       <button className="navBtn" onClick={onLogin}>

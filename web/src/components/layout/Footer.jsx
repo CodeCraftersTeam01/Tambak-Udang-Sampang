@@ -26,8 +26,9 @@ export default function Footer() {
           <h3>Navigation</h3>
           <ul className="footerLinks">
             <li><a href="#home">Home</a></li>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#technology">Technology</a></li>
+            <li><a href="#features">Fitur</a></li>
+            <li><a href="#stats">Data Live</a></li>
+            <li><a href="#benur">Status Benur</a></li>
           </ul>
         </div>
 

@@ -8,16 +8,20 @@ import {
   FaSeedling,
   FaFish,
   FaBoxes,
+  FaBroadcastTower,
+  FaMicrochip,
 } from "react-icons/fa";
 import "../../styles/dashboard.css";
 
 const navItems = [
-  { path: "/admin/dashboard", label: "Dashboard", icon: <FaHome /> },
-  { path: "/admin/kolam",     label: "Kolam",      icon: <FaWater /> },
-  { path: "/admin/produksi",  label: "Produksi",   icon: <FaSeedling /> },
-  { path: "/admin/panen",     label: "Panen",      icon: <FaFish /> },
-  { path: "/admin/pakan",     label: "Pakan",      icon: <FaBoxes /> },
-  { path: "/admin/users",     label: "Users",      icon: <FaUsers /> },
+  { path: "/admin/dashboard",  label: "Dashboard",  icon: <FaHome /> },
+  { path: "/admin/monitoring", label: "Monitoring", icon: <FaBroadcastTower /> },
+  { path: "/admin/devices",    label: "Devices",    icon: <FaMicrochip /> },
+  { path: "/admin/kolam",      label: "Kolam",      icon: <FaWater /> },
+  { path: "/admin/produksi",   label: "Produksi",   icon: <FaSeedling /> },
+  { path: "/admin/panen",      label: "Panen",      icon: <FaFish /> },
+  { path: "/admin/pakan",      label: "Pakan",      icon: <FaBoxes /> },
+  { path: "/admin/users",      label: "Users",      icon: <FaUsers /> },
 ];
 
 export default function DashboardLayout({ children, title }) {
