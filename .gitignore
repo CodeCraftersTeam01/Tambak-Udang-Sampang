@@ -1,0 +1,9 @@
+# Ignore folder apk_tambak
+apk_tambak/
+
+# Ignore Android Application binary files (APK/AAB)
+*.apk
+*.aab
+*.dex
+*.class
+apk_tambak*.apk

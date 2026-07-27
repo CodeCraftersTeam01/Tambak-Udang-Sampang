@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
-import API_URL from "../../services/api";
+import apiClient from "../../core/network/apiClient";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginModal({ onClose }) {
@@ -37,29 +37,17 @@ export default function LoginModal({ onClose }) {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `${API_URL}/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("token", data.access_token || data.token);
+      const response = await apiClient.post("/auth/login", { email, password });
+      
+      if (response.status === 200) {
+        localStorage.setItem("token", response.data.access_token || response.data.token);
         navigate("/admin/dashboard");
-        window.location.reload(); // Force reload to apply new token
-      } else {
-        alert("Login gagal: " + (data.message || "Unknown error"));
       }
     } catch (err) {
-      alert("Server error");
+      if (err.response && err.response.status === 401) {
+        alert("Login gagal: Email atau password salah.");
+      }
+      // other errors are handled by interceptor
     }
   };
 

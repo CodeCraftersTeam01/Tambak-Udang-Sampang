@@ -7,7 +7,7 @@ import {
 } from "react-icons/fa";
 import DashboardLayout from "../../components/admin/DashboardLayout";
 import KolamDetailModal from "../../components/admin/KolamDetailModal";
-import API_URL from "../../services/api";
+import apiClient from "../../core/network/apiClient";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -16,40 +16,38 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [detailModal, setDetailModal] = useState(null);
-
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
-
     Promise.all([
-      fetch(`${API_URL}/api/kolam`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_URL}/users`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_URL}/api/panen/statistik`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_URL}/api/pakan/statistik`, { headers: h }).then((r) => r.json()),
-      fetch(`${API_URL}/api/produksi`, { headers: h }).then((r) => r.json()),
+      apiClient.get('/kolam'),
+      apiClient.get('/panen/statistik'),
+      apiClient.get('/pakan/statistik'),
+      apiClient.get('/produksi'),
     ])
-      .then(([kolamRes, usersRes, panenStat, pakanStat, produksiRes]) => {
-        const kolams = kolamRes.data || [];
+      .then(([kolamRes, panenStat, pakanStat, produksiRes]) => {
+        const kolams = kolamRes.data.data || [];
+        const activeKolam = kolams.filter(k => k.status === 'aktif' || k.status == 1).length;
+        const produksis = produksiRes.data.data || [];
+        const avgUsia = produksis.length ? Math.round(produksis.reduce((sum, p) => sum + (p.usia_benur || 0), 0) / produksis.length) : 0;
+        
         setStats({
-          kolam: kolams.length,
-          users: (usersRes.data || []).length,
-          totalPanen: panenStat.data?.total_kg || 0,
-          totalPakan: pakanStat.data?.total_perminggu_kg || 0,
-          produksi: (produksiRes.data || []).length,
+          kolam: activeKolam,
+          totalPanen: panenStat.data.data?.total_kg || 0,
+          totalPakan: pakanStat.data.data?.total_perminggu_kg || 0,
+          usiaBenur: avgUsia,
           kolams,
         });
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error("Dashboard Fetch Error:", err);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const cards = [
-    { icon: <FaWater />, value: stats.kolam, label: "Total Kolam", color: "blue", path: "/admin/kolam" },
-    { icon: <FaSeedling />, value: stats.produksi, label: "Siklus Produksi", color: "green", path: "/admin/produksi" },
+    { icon: <FaSwimmingPool />, value: stats.kolam, label: "Active Ponds", color: "blue", path: "/admin/kolam" },
+    { icon: <FaBoxes />, value: `${parseFloat(stats.totalPakan).toFixed(1)} kg`, label: "Total Pakan", color: "red", path: "/admin/pakan" },
     { icon: <FaFish />, value: `${parseFloat(stats.totalPanen).toFixed(1)} kg`, label: "Total Panen", color: "orange", path: "/admin/panen" },
-    { icon: <FaBoxes />, value: `${parseFloat(stats.totalPakan).toFixed(1)} kg`, label: "Pakan / Minggu", color: "red", path: "/admin/pakan" },
-    { icon: <FaUsers />, value: stats.users, label: "Total User", color: "blue", path: "/admin/users" },
+    { icon: <FaSeedling />, value: `${stats.usiaBenur} hari`, label: "Rata-rata Usia Benur", color: "green", path: "/admin/produksi" },
   ];
 
   return (

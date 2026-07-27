@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Security & AI Context Files
+.env
+.clinerules
+agent.md
+design.md
+api_contract.md
+tasks.md

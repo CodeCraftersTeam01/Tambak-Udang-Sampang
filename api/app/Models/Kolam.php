@@ -13,8 +13,16 @@ class Kolam extends Model
         'id',
         'pemilik',
         'nama_kolam',
+        'mqtt_id',
         'lat',
         'long',
         'status',
+        'luas_kolam',
+        'detail_udang',
     ];
+
+    public function relays()
+    {
+        return $this->hasMany(Relay::class);
+    }
 }

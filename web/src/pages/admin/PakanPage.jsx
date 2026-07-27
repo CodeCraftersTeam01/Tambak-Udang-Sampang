@@ -7,7 +7,7 @@ import { Bar } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 import DashboardLayout from "../../components/admin/DashboardLayout";
-import API_URL from "../../services/api";
+import apiClient from "../../core/network/apiClient";
 
 const empty = { nama_pakan: "", jumlah_perminggu_kg: "", kolam_id: "" };
 
@@ -21,15 +21,19 @@ function PakanModal({ mode, data, kolams, onClose, onSaved }) {
     data ? { nama_pakan: data.nama_pakan, jumlah_perminggu_kg: data.jumlah_perminggu_kg, kolam_id: String(data.kolam_id) } : empty
   );
   const [saving, setSaving] = useState(false);
-  const token = localStorage.getItem("token");
+
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
     try {
-      const url = mode === "edit" ? `${API_URL}/api/pakan/${data.id}` : `${API_URL}/api/pakan`;
-      const res = await fetch(url, { method: mode === "edit" ? "PUT" : "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, Accept: "application/json" }, body: JSON.stringify(form) });
-      if (!res.ok) throw new Error();
-      onSaved(mode === "edit" ? "Pakan diperbarui!" : "Pakan ditambahkan!"); onClose();
+      if (mode === "edit") {
+        await apiClient.put(`/pakan/${data.id}`, form);
+        onSaved("Pakan diperbarui!");
+      } else {
+        await apiClient.post(`/pakan`, form);
+        onSaved("Pakan ditambahkan!");
+      }
+      onClose();
     } catch { onSaved("Terjadi kesalahan.", "error"); } finally { setSaving(false); }
   };
 
@@ -75,22 +79,21 @@ export default function PakanPage() {
   const [modal, setModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState(null);
-  const token = localStorage.getItem("token");
-  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [pakanRes, kolamRes, statRes] = await Promise.all([
-        fetch(`${API_URL}/api/pakan`, { headers }).then((r) => r.json()),
-        fetch(`${API_URL}/api/kolam`, { headers }).then((r) => r.json()),
-        fetch(`${API_URL}/api/pakan/statistik`, { headers }).then((r) => r.json()),
+        apiClient.get(`/pakan`),
+        apiClient.get(`/kolam`),
+        apiClient.get(`/pakan/statistik`),
       ]);
-      setData(pakanRes.data || []);
-      setKolams(kolamRes.data || []);
-      setStatistik(statRes.data || null);
+      setData(pakanRes.data.data || []);
+      setKolams(kolamRes.data.data || []);
+      setStatistik(statRes.data.data || null);
     } catch { showToast("Gagal memuat data.", "error"); } finally { setLoading(false); }
-  }, [token]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -98,7 +101,7 @@ export default function PakanPage() {
 
   const handleDelete = async () => {
     try {
-      await fetch(`${API_URL}/api/pakan/${confirmDelete.id}`, { method: "DELETE", headers });
+      await apiClient.delete(`/pakan/${confirmDelete.id}`);
       showToast("Data dihapus!"); fetchData();
     } catch { showToast("Gagal menghapus.", "error"); } finally { setConfirmDelete(null); }
   };

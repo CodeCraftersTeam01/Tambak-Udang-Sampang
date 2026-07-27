@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { FaPlus, FaUsers, FaEdit, FaTrash } from "react-icons/fa";
 import DashboardLayout from "../../components/admin/DashboardLayout";
-import API_URL from "../../services/api";
+import apiClient from "../../core/network/apiClient";
 
-const ROLES = [
-  { id: 1, name: "super_admin", label: "Super Admin" },
-  { id: 2, name: "admin", label: "Admin" },
-  { id: 3, name: "petambak", label: "Petambak" },
-];
 
-const emptyForm = { name: "", email: "", password: "", role_id: "3", nomor_hp: "", alamat: "" };
+
+const emptyForm = { name: "", email: "", password: "", role: "petambak", nomor_hp: "", alamat: "" };
 
 function Toast({ message, type, onHide }) {
   useEffect(() => {
@@ -22,11 +18,10 @@ function Toast({ message, type, onHide }) {
 function UserModal({ mode, data, onClose, onSaved }) {
   const [form, setForm] = useState(
     data
-      ? { name: data.name, email: data.email, password: "", role_id: String(data.role_id || data.role?.id || 3), nomor_hp: data.nomor_hp || "", alamat: data.alamat || "" }
+      ? { name: data.name, email: data.email, password: "", role: data.role || "petambak", nomor_hp: data.nomor_hp || "", alamat: data.alamat || "" }
       : emptyForm
   );
   const [saving, setSaving] = useState(false);
-  const token = localStorage.getItem("token");
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -34,22 +29,16 @@ function UserModal({ mode, data, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const url = mode === "edit" ? `${API_URL}/users/${data.id}` : `${API_URL}/users`;
-      const method = mode === "edit" ? "PUT" : "POST";
-      const body = { ...form };
+      const body = { ...form, role: form.role };
       if (mode === "edit" && !body.password) delete body.password;
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error("Gagal");
-      onSaved(mode === "edit" ? "User berhasil diperbarui!" : "User berhasil ditambahkan!");
+      if (mode === "edit") {
+        await apiClient.put(`/users/${data.id}`, body);
+        onSaved("User berhasil diperbarui!");
+      } else {
+        await apiClient.post(`/users`, body);
+        onSaved("User berhasil ditambahkan!");
+      }
       onClose();
     } catch {
       onSaved("Terjadi kesalahan.", "error");
@@ -87,10 +76,10 @@ function UserModal({ mode, data, onClose, onSaved }) {
           </div>
           <div className="dashFormGroup">
             <label>Role</label>
-            <select name="role_id" value={form.role_id} onChange={handleChange}>
-              {ROLES.map((r) => (
-                <option key={r.id} value={String(r.id)}>{r.label}</option>
-              ))}
+            <select name="role" value={form.role} onChange={handleChange}>
+              <option value="super_admin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="petambak">Petambak</option>
             </select>
           </div>
           <div className="dashFormRow">
@@ -158,22 +147,19 @@ export default function UsersPage() {
   const [modal, setModal] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState(null);
-  const token = localStorage.getItem("token");
+
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      });
-      const json = await res.json();
-      setUsers(json.data || []);
+      const res = await apiClient.get(`/users`);
+      setUsers(res.data.data || []);
     } catch {
       showToast("Gagal memuat data user.", "error");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -182,10 +168,7 @@ export default function UsersPage() {
   const handleDelete = async () => {
     if (!confirmDelete) return;
     try {
-      await fetch(`${API_URL}/users/${confirmDelete.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.delete(`/users/${confirmDelete.id}`);
       showToast("User berhasil dihapus!");
       fetchUsers();
     } catch {
@@ -195,7 +178,7 @@ export default function UsersPage() {
     }
   };
 
-  const getRoleName = (user) => user.role?.name || ROLES.find((r) => r.id === user.role_id)?.name || "unknown";
+
 
   const filtered = users.filter(
     (u) =>
@@ -250,7 +233,7 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {filtered.map((u, i) => {
-                  const roleName = getRoleName(u);
+
                   return (
                     <tr key={u.id}>
                       <td className="tdMuted">{i + 1}</td>
@@ -264,7 +247,9 @@ export default function UsersPage() {
                       </td>
                       <td className="tdMuted">{u.email}</td>
                       <td>
-                        <span className={`tableBadge ${roleName}`}>{roleName}</span>
+                        <span className={`tableBadge ${u.role}`}>
+                          {u.role || '-'}
+                        </span>
                       </td>
                       <td className="tdMuted">{u.nomor_hp || "-"}</td>
                       <td className="tdMuted" style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

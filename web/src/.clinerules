@@ -1,0 +1,6 @@
+- STRICT RULE: You are building a React.js SPA using Vite. Do NOT use Flutter, Dart, or EJS.
+- CSS FRAMEWORK: Use Tailwind CSS strictly, but only using classes that match the existing layout styling.
+- DESIGN PRESERVATION: Do NOT introduce new design styles, heavy black borders, or Neubrutalism. Meticulously preserve the current modern minimalist visual identity.
+- STATE & FETCHING: Use `axios` for API calls. Store the Sanctum JWT token in `localStorage`.
+- ARCHITECTURE: Component-based. Reusable UI components go in `src/components`. Pages go in `src/pages`.
+- NO HALLUCINATION: Read `api_contract.md` before making any Axios calls. The backend is running on `http://localhost:8000/api`.

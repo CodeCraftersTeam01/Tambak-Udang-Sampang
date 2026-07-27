@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { FaPlus, FaWater, FaEdit, FaTrash, FaMapMarkerAlt, FaEye } from "react-icons/fa";
 import DashboardLayout from "../../components/admin/DashboardLayout";
 import KolamDetailModal from "../../components/admin/KolamDetailModal";
-import API_URL from "../../services/api";
+import apiClient from "../../core/network/apiClient";
 
-const emptyForm = { pemilik: "", nama_kolam: "", lat: "", long: "", status: "aktif" };
+const emptyForm = { pemilik: "", nama_kolam: "", lat: "", long: "", status: "aktif", target_panen_kg: "" };
 
 function Toast({ message, type, onHide }) {
   useEffect(() => {
@@ -25,21 +25,16 @@ function KolamModal({ mode, data, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const url = mode === "edit" ? `${API_URL}/api/kolam/${form.id}` : `${API_URL}/api/kolam`;
-      const method = mode === "edit" ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Gagal menyimpan");
-      onSaved(mode === "edit" ? "Kolam berhasil diperbarui!" : "Kolam berhasil ditambahkan!");
+      const payload = { ...form, target_panen_kg: Number(form.target_panen_kg) };
+      if (mode === "edit") {
+        await apiClient.put(`/kolam/${form.id}`, payload);
+        onSaved("Kolam berhasil diperbarui!", "success");
+      } else {
+        await apiClient.post(`/kolam`, payload);
+        onSaved("Kolam berhasil ditambahkan!", "success");
+      }
       onClose();
-    } catch {
+    } catch (err) {
       onSaved("Terjadi kesalahan.", "error");
     } finally {
       setSaving(false);
@@ -54,9 +49,15 @@ function KolamModal({ mode, data, onClose, onSaved }) {
           <button className="dashModalClose" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="dashFormGroup">
-            <label>Nama Kolam</label>
-            <input name="nama_kolam" value={form.nama_kolam} onChange={handleChange} placeholder="Kolam A" required />
+          <div className="dashFormRow">
+            <div className="dashFormGroup">
+              <label>Nama Kolam</label>
+              <input name="nama_kolam" value={form.nama_kolam} onChange={handleChange} placeholder="Kolam A" required />
+            </div>
+            <div className="dashFormGroup">
+              <label>Target Panen (kg)</label>
+              <input name="target_panen_kg" type="number" step="0.01" value={form.target_panen_kg} onChange={handleChange} placeholder="0.00" required />
+            </div>
           </div>
           <div className="dashFormGroup">
             <label>Pemilik</label>
@@ -122,17 +123,14 @@ export default function KolamPage() {
   const fetchKolam = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/kolam`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      });
-      const json = await res.json();
-      setKolams(json.data || []);
-    } catch {
+      const res = await apiClient.get('/kolam');
+      setKolams(res.data.data || []);
+    } catch (err) {
       showToast("Gagal memuat data kolam.", "error");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => { fetchKolam(); }, [fetchKolam]);
 
@@ -143,13 +141,10 @@ export default function KolamPage() {
   const handleDelete = async () => {
     if (!confirmDelete) return;
     try {
-      await fetch(`${API_URL}/api/kolam/${confirmDelete.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.delete(`/kolam/${confirmDelete.id}`);
       showToast("Kolam berhasil dihapus!");
       fetchKolam();
-    } catch {
+    } catch (err) {
       showToast("Gagal menghapus kolam.", "error");
     } finally {
       setConfirmDelete(null);

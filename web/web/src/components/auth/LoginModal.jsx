@@ -12,7 +12,7 @@ export default function LoginModal({ onClose }) {
 
     try {
       const response = await fetch(
-        "https://api.aquaculture.m-tech.fun/login",
+        `${import.meta.env.VITE_API_URL}/login`,
         {
           method: "POST",
           headers: {

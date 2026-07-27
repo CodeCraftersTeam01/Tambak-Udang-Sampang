@@ -70,9 +70,11 @@ class PanenController extends Controller
             'jumlah_panen_kg'  => 'required|numeric|min:0',
             'jenis_panen'      => 'required|in:parsial,total',
             'kolam_id'         => 'required|exists:kolams,id',
+            'shrimp_size'      => 'required|string',
+            'sale_price'       => 'required|numeric|min:0',
         ]);
 
-        $panen = Panen::create($request->only(['tanggal_panen', 'jumlah_panen_kg', 'jenis_panen', 'kolam_id']));
+        $panen = Panen::create($request->only(['tanggal_panen', 'jumlah_panen_kg', 'jenis_panen', 'kolam_id', 'shrimp_size', 'sale_price']));
         $panen->load('kolam');
 
         return response()->json(['message' => 'Panen berhasil ditambahkan', 'data' => $panen], 201);
@@ -99,9 +101,11 @@ class PanenController extends Controller
             'jumlah_panen_kg' => 'sometimes|numeric|min:0',
             'jenis_panen'     => 'sometimes|in:parsial,total',
             'kolam_id'        => 'sometimes|exists:kolams,id',
+            'shrimp_size'     => 'sometimes|string',
+            'sale_price'      => 'sometimes|numeric|min:0',
         ]);
 
-        $panen->update($request->only(['tanggal_panen', 'jumlah_panen_kg', 'jenis_panen', 'kolam_id']));
+        $panen->update($request->only(['tanggal_panen', 'jumlah_panen_kg', 'jenis_panen', 'kolam_id', 'shrimp_size', 'sale_price']));
         $panen->load('kolam');
 
         return response()->json(['message' => 'Panen berhasil diperbarui', 'data' => $panen]);
