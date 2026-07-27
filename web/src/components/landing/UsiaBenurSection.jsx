@@ -32,7 +32,7 @@ export default function UsiaBenurSection() {
   if (data.length === 0) return null;
 
   return (
-    <section className="section" style={{ background: "rgba(0,0,0,0.4)", position: "relative", zIndex: 10 }}>
+    <section id="benur" className="section" style={{ background: "rgba(0,0,0,0.4)", position: "relative", zIndex: 10 }}>
       <div className="sectionContainer">
         <h2 className="sectionTitle" style={{ textAlign: "center", marginBottom: "3rem" }}>
           Status Produksi Terkini
