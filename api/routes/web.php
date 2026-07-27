@@ -37,3 +37,14 @@ $router->group(['middleware' => ['auth', 'throttle:60,1']], function () use ($ro
         $router->post('tambak/input-data', 'TambakController@store');
     });
 });
+
+
+
+
+
+
+
+
+
+
+
