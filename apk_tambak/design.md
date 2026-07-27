@@ -28,3 +28,9 @@ lib/
 └── presentation/
     ├── bloc/ (State management)
     └── ui/ (Dashboard screens, input forms, and authentication)
+
+## 3. UI/UX Design Language (Tailwind-Esque Natively)
+- **Primary Palette**: Navy Blue (`Color(0xFF0F172A)`) to Pure White (`Colors.white`).
+- **Backgrounds**: All main screens MUST implement a `LinearGradient` starting from Navy Blue at the `topCenter` transitioning to White at the `bottomCenter`.
+- **Containers**: Forms, lists, and sensor cards must be wrapped in White `Container`s with `BorderRadius.circular(24)` and a soft `BoxShadow` (mimicking Tailwind's `shadow-lg` with `blurRadius: 10`, `color: Colors.black12`).
+- **Buttons**: Action buttons must have constrained sizes (e.g., `height: 50`) and should not overflow or expand infinitely.

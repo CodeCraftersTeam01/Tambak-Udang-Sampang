@@ -65,7 +65,7 @@ class _LogInputScreenState extends State<LogInputScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Log berhasil disubmit!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Log berhasil disubmit!'), backgroundColor: AppColors.primary),
           );
           Navigator.pop(context);
         }

@@ -29,3 +29,15 @@ class KolamError extends KolamState {
   @override
   List<Object> get props => [message];
 }
+
+class KolamAddSuccess extends KolamState {
+  final KolamEntity? kolam;
+  const KolamAddSuccess({this.kolam});
+}
+
+class KolamUpdateSuccess extends KolamState {
+  final KolamEntity? kolam;
+  const KolamUpdateSuccess({this.kolam});
+}
+
+class KolamDeleteSuccess extends KolamState {}

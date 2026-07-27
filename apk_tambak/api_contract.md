@@ -18,7 +18,35 @@
 ## B. Pond (Kolam) Management
 - `GET /kolam` -> Fetch all active ponds.
 - `POST /kolam` -> Create a new pond.
-- `GET /kolam/{id}` -> Fetch specific pond details (including MQTT Topic mapping).
+  - Payload format:
+    ```json
+    {
+      "pemilik": 1,
+      "nama_kolam": "Kolam A1",
+      "mqtt_id": "t01",
+      "lat": 1.23,
+      "long": 100.12,
+      "status": 1,
+      "luas_kolam": 1000.50,
+      "detail_udang": "Vannamei"
+    }
+    ```
+- `PUT /kolam/{id}` -> Update an existing pond.
+  - Payload format (same as POST).
+- `GET /kolam/{id}` -> Fetch specific pond details (including `relays` relationship).
+
+## B.1 Relay Management
+- `POST /relay` -> Create multiple relays for a pond.
+  - Payload format:
+    ```json
+    {
+      "kolam_id": 1,
+      "relays": [
+        { "nama_relay": "Kincir Ujung" },
+        { "nama_relay": "Kincir Tengah" }
+      ]
+    }
+    ```
 
 ## C. Production Management (Daily Logs)
 - `POST /produksi/log`

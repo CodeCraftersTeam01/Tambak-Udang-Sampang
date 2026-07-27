@@ -17,7 +17,7 @@ class KolamController extends Controller
      */
     public function index()
     {
-        $kolams = Kolam::all();
+        $kolams = Kolam::with('relays')->get();
         return response()->json([
             'message' => 'Success',
             'data' => KolamResource::collection($kolams)
@@ -51,7 +51,7 @@ class KolamController extends Controller
      */
     public function show($id)
     {
-        $kolam = Kolam::find($id);
+        $kolam = Kolam::with('relays')->find($id);
 
         if (!$kolam) {
             return response()->json(['message' => 'Kolam not found'], 404);

@@ -26,6 +26,9 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
     $router->patch('kolam/{id}',   'KolamController@update');
     $router->delete('kolam/{id}',  'KolamController@destroy');
 
+    // Relay routes
+    $router->post('relay',         'RelayController@storeBatch');
+
     // Produksi CRUD
     $router->get('produksi/log/{kolam_id}', 'ProduksiLogController@index');
     $router->post('produksi/log',    'ProduksiLogController@store');

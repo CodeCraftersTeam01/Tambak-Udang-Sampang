@@ -109,7 +109,7 @@ class _PakanScreenState extends State<PakanScreen> {
                               if (mounted) {
                                 Navigator.pop(context);
                                 _fetchData();
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pakan berhasil ditambahkan'), backgroundColor: Colors.green));
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pakan berhasil ditambahkan'), backgroundColor: AppColors.primary));
                               }
                             } catch (e) {
                               setStateDialog(() => isSubmitting = false);
@@ -184,7 +184,7 @@ class _PakanScreenState extends State<PakanScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text('IN', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text('IN', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
                 Text('$jumlah Kg', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               ],
             ),

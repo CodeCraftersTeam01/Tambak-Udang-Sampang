@@ -183,7 +183,7 @@ class _AddPanenFormState extends State<_AddPanenForm> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Data Panen berhasil disimpan!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Data Panen berhasil disimpan!'), backgroundColor: AppColors.primary),
           );
           widget.onSuccess();
         }

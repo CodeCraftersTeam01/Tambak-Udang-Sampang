@@ -25,9 +25,12 @@ class UpdateKolamRequest
         return [
             'pemilik' => 'required|integer|exists:users,id',
             'nama_kolam' => 'required|string|max:255' . ($id ? '|unique:kolams,nama_kolam,' . $id : ''),
+            'mqtt_id' => 'nullable|string|max:255',
             'lat' => 'nullable|numeric',
             'long' => 'nullable|numeric',
-            'status' => 'required|in:0,1',
+            'status' => 'required|in:0,1,2',
+            'luas_kolam' => 'nullable|numeric',
+            'detail_udang' => 'nullable|string',
         ];
     }
 }

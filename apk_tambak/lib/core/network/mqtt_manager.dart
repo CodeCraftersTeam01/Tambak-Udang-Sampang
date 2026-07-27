@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:flutter/foundation.dart';
 
 class MqttManager {
   static final MqttManager _instance = MqttManager._internal();
@@ -12,6 +13,8 @@ class MqttManager {
   
   final _sensorDataController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get sensorDataStream => _sensorDataController.stream;
+
+  final ValueNotifier<Map<String, bool>> relayStatuses = ValueNotifier({});
 
   Map<String, dynamic> get latestData => Map.unmodifiable(_currentState);
 
@@ -24,7 +27,7 @@ class MqttManager {
     'aerator': 'OFF',
   };
 
-  Future<void> connect() async {
+  Future<void> connect(String mqttId) async {
     if (_client != null && _client!.connectionStatus!.state == MqttConnectionState.connected) {
       return;
     }
@@ -53,39 +56,56 @@ class MqttManager {
     }
 
     if (_client!.connectionStatus!.state == MqttConnectionState.connected) {
-      _client!.subscribe('pkm2026/t01/#', MqttQos.atMostOnce);
+      _client!.subscribe('pkm2026/$mqttId/#', MqttQos.atLeastOnce);
       
       _client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> c) {
         final recMess = c[0].payload as MqttPublishMessage;
         final pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
         final topic = c[0].topic;
 
-        _handlePayload(topic, pt);
+        _handlePayload(topic, pt, mqttId);
       });
     }
   }
 
-  void _handlePayload(String topic, String payload) {
-    if (topic == 'pkm2026/t01/suhu') {
+  void _handlePayload(String topic, String payload, String mqttId) {
+    if (topic == 'pkm2026/$mqttId/suhu') {
       _currentState['suhu'] = double.tryParse(payload) ?? _currentState['suhu'];
-    } else if (topic == 'pkm2026/t01/ph') {
+    } else if (topic == 'pkm2026/$mqttId/ph') {
       _currentState['ph'] = double.tryParse(payload) ?? _currentState['ph'];
-    } else if (topic == 'pkm2026/t01/do') {
+    } else if (topic == 'pkm2026/$mqttId/do') {
       _currentState['do'] = double.tryParse(payload) ?? _currentState['do'];
-    } else if (topic == 'pkm2026/t01/tds') {
+    } else if (topic == 'pkm2026/$mqttId/tds') {
       _currentState['tds'] = double.tryParse(payload) ?? _currentState['tds'];
-    } else if (topic == 'pkm2026/t01/aerator/status') {
+    } else if (topic.endsWith('aerator/status')) {
       _currentState['aerator'] = payload; // ON or OFF
+      final newMap = Map<String, bool>.from(relayStatuses.value);
+      newMap['master'] = (payload == 'ON');
+      relayStatuses.value = newMap;
+    } else if (topic.contains('aerator_') && topic.endsWith('/status')) {
+      final parts = topic.split('aerator_');
+      final indexStr = parts[1].split('/')[0];
+      final newMap = Map<String, bool>.from(relayStatuses.value);
+      newMap[indexStr] = (payload == 'ON');
+      relayStatuses.value = newMap;
     }
     
     _sensorDataController.add(Map.from(_currentState));
   }
 
-  void publishAeratorControl(bool isOn) {
+  void publishMasterControl(String mqttId, bool isOn) {
     if (_client != null && _client!.connectionStatus!.state == MqttConnectionState.connected) {
       final builder = MqttClientPayloadBuilder();
       builder.addString(isOn ? 'ON' : 'OFF');
-      _client!.publishMessage('pkm2026/t01/aerator/control', MqttQos.atLeastOnce, builder.payload!, retain: true);
+      _client!.publishMessage('pkm2026/$mqttId/aerator/control', MqttQos.atLeastOnce, builder.payload!, retain: true);
+    }
+  }
+
+  void publishRelayControl(String mqttId, int relayIndex, bool isOn) {
+    if (_client != null && _client!.connectionStatus!.state == MqttConnectionState.connected) {
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(isOn ? 'ON' : 'OFF');
+      _client!.publishMessage('pkm2026/$mqttId/aerator_$relayIndex/control', MqttQos.atLeastOnce, builder.payload!, retain: true);
     }
   }
 

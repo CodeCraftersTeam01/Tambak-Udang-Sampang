@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../constants/api_endpoints.dart';
 import '../security/secure_storage.dart';
@@ -20,6 +21,7 @@ class ApiClient {
       onRequest: (options, handler) async {
         options.headers['Accept'] = 'application/json';
         options.headers['Content-Type'] = 'application/json';
+        debugPrint('[API REQUEST] ${options.method} ${options.uri}');
 
         final token = await secureStorage.getToken();
         if (token != null && token.isNotEmpty) {

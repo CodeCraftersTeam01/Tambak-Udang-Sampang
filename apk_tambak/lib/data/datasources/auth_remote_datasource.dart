@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_endpoints.dart';
@@ -16,6 +17,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
+      final targetUrl = '${apiClient.dio.options.baseUrl}${ApiEndpoints.login}';
+      debugPrint('Attempting to connect to: $targetUrl');
       final response = await apiClient.dio.post(ApiEndpoints.login, data: {
         'email': email,
         'password': password,
