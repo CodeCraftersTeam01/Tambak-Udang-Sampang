@@ -41,6 +41,9 @@ export default function Navbar({ onLogin }) {
         <a href="#stats" onClick={() => setOpen(false)}>Data Live</a>
         <a href="#benur" onClick={() => setOpen(false)}>Status Benur</a>
         <a href="#contact" onClick={() => setOpen(false)}>Kontak</a>
+        <button className="navBtn navSignInMobile" style={{ width: "100%", marginTop: "4px" }} onClick={() => { setOpen(false); onLogin(); }}>
+          Sign In
+        </button>
       </nav>
 
       <button className="navBtn" onClick={onLogin}>

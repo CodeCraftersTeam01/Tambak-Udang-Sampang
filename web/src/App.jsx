@@ -9,6 +9,7 @@ import PanenPage from "./pages/admin/PanenPage";
 import PakanPage from "./pages/admin/PakanPage";
 import Monitoring from "./pages/admin/Monitoring";
 import Devices from "./pages/admin/Devices";
+import ToastContainer from "./components/common/ToastContainer";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -19,6 +20,7 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/admin/dashboard"  element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

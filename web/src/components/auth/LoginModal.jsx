@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import apiClient from "../../core/network/apiClient";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { toast } from "../../core/utils/toast";
 
 export default function LoginModal({ onClose }) {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export default function LoginModal({ onClose }) {
       }
     } catch (err) {
       if (err.response && err.response.status === 401) {
-        alert("Login gagal: Email atau password salah.");
+        toast.error("Login gagal: Email atau password salah.");
       }
       // other errors are handled by interceptor
     }

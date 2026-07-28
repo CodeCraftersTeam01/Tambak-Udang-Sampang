@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
@@ -38,16 +39,22 @@ export default function LandingPage() {
       <ThreeBackground />
       <ParallaxBackground />
 
-      <Navbar onLogin={() => setShowLogin(true)} />
-      
-      <main>
-        <HeroSection onCtaClick={() => setShowLogin(true)} />
-        <FeatureCards />
-        <LiveStatsSection />
-        <UsiaBenurSection />
-      </main>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <Navbar onLogin={() => setShowLogin(true)} />
+        
+        <main>
+          <HeroSection onCtaClick={() => setShowLogin(true)} />
+          <FeatureCards />
+          <LiveStatsSection />
+          <UsiaBenurSection />
+        </main>
 
-      <Footer />
+        <Footer />
+      </motion.div>
 
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </div>

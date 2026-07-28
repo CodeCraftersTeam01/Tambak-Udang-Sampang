@@ -1,0 +1,120 @@
+.toastContainer {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 99999;
+  max-width: 420px;
+  width: calc(100% - 48px);
+  pointer-events: none;
+}
+
+.toastItem {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(12, 12, 18, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  color: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.toastItem:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* Left accent borders */
+.toastItem.success {
+  border-left: 4px solid var(--dash-success, #30d158);
+}
+.toastItem.error {
+  border-left: 4px solid var(--dash-danger, #ff3b30);
+}
+.toastItem.warning {
+  border-left: 4px solid var(--dash-warning, #ff9f0a);
+}
+.toastItem.info {
+  border-left: 4px solid var(--dash-accent, #0071e3);
+}
+
+.toastContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.toastIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.toastIcon.success {
+  color: var(--dash-success, #30d158);
+  filter: drop-shadow(0 0 6px rgba(48, 209, 88, 0.4));
+}
+
+.toastIcon.error {
+  color: var(--dash-danger, #ff3b30);
+  filter: drop-shadow(0 0 6px rgba(255, 59, 48, 0.4));
+}
+
+.toastIcon.warning {
+  color: var(--dash-warning, #ff9f0a);
+  filter: drop-shadow(0 0 6px rgba(255, 159, 10, 0.4));
+}
+
+.toastIcon.info {
+  color: var(--dash-accent, #0071e3);
+  filter: drop-shadow(0 0 6px rgba(0, 113, 227, 0.4));
+}
+
+.toastMessage {
+  word-break: break-word;
+}
+
+.toastCloseBtn {
+  background: none;
+  border: none;
+  color: #86868b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.toastCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f5f7;
+}
+
+@media (max-width: 480px) {
+  .toastContainer {
+    top: auto;
+    bottom: 24px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+}
