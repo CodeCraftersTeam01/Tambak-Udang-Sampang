@@ -110,4 +110,43 @@ class KolamController extends Controller
             'message' => 'Kolam deleted successfully'
         ], 200);
     }
+
+    /**
+     * Get farm management summary.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function farmSummary()
+    {
+        $uniqueOwners = \App\Models\Kolam::distinct('pemilik')->pluck('pemilik');
+        $owners = \App\Models\User::whereIn('id', $uniqueOwners)->get();
+        
+        $totalPonds = \App\Models\Kolam::count();
+        $activePonds = \App\Models\Kolam::where('status', 1)->count();
+        $totalArea = (float) \App\Models\Kolam::sum('luas_kolam');
+        
+        $farms = $owners->map(function ($owner) {
+            $pondsCount = \App\Models\Kolam::where('pemilik', $owner->id)->count();
+            $activePondsCount = \App\Models\Kolam::where('pemilik', $owner->id)->where('status', 1)->count();
+            
+            return [
+                'id' => $owner->id,
+                'name' => "Farm " . ($owner->name ?? "User #{$owner->id}"),
+                'owner_name' => $owner->name,
+                'ponds_count' => $pondsCount,
+                'active_ponds_count' => $activePondsCount,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_farms' => $farms->count(),
+                'total_ponds' => $totalPonds,
+                'active_ponds' => $activePonds,
+                'total_area' => $totalArea,
+                'farms' => $farms
+            ]
+        ], 200);
+    }
 }

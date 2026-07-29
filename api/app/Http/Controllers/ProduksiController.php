@@ -23,9 +23,18 @@ class ProduksiController extends Controller
     public function index()
     {
         $data = Produksi::with('kolam')->get()->map(function ($p) {
+            $englishMapped = [
+                'pond_id' => $p->kolam_id,
+                'pond_name' => $p->kolam->nama_kolam ?? 'Unknown',
+                'start_date' => $p->tanggal_pemasangan_benor ? $p->tanggal_pemasangan_benor->format('Y-m-d') : null,
+                'shrimp_species' => 'Vannamei',
+                'initial_density' => $p->ukuran_benor,
+                'status' => 'active',
+                'age_of_water_days' => $p->usia_benur,
+            ];
             return array_merge($p->toArray(), [
                 'usia_benur' => $p->usia_benur,
-            ]);
+            ], $englishMapped);
         });
 
         return response()->json(['message' => 'Success', 'data' => $data], 200);
@@ -50,13 +59,25 @@ class ProduksiController extends Controller
 
     public function show($id)
     {
-        $produksi = Produksi::with('kolam')->find($id);
-        if (!$produksi) {
+        $p = Produksi::with('kolam')->find($id);
+        if (!$p) {
             return response()->json(['message' => 'Produksi tidak ditemukan'], 404);
         }
+
+        $englishMapped = [
+            'id' => $p->id,
+            'pond_id' => $p->kolam_id,
+            'pond_name' => $p->kolam->nama_kolam ?? 'Unknown',
+            'start_date' => $p->tanggal_pemasangan_benor ? $p->tanggal_pemasangan_benor->format('Y-m-d') : null,
+            'shrimp_species' => 'Vannamei',
+            'initial_density' => $p->ukuran_benor,
+            'status' => 'active',
+            'age_of_water_days' => $p->usia_benur,
+        ];
+
         return response()->json([
             'message' => 'Success',
-            'data'    => array_merge($produksi->toArray(), ['usia_benur' => $produksi->usia_benur]),
+            'data'    => array_merge($p->toArray(), ['usia_benur' => $p->usia_benur], $englishMapped),
         ]);
     }
 
@@ -90,5 +111,40 @@ class ProduksiController extends Controller
         }
         $produksi->delete();
         return response()->json(['message' => 'Produksi berhasil dihapus']);
+    }
+
+    /**
+     * Get production management summary.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function productionSummary()
+    {
+        $activeCyclesCount = Produksi::count();
+        $totalFeedUsed = (float) \App\Models\Pakan::sum('jumlah_perminggu_kg');
+        $totalHarvest = (float) \App\Models\Panen::sum('jumlah_panen_kg');
+        
+        // Average MBW from latest log of each pond
+        $uniquePondIds = \App\Models\ProduksiLog::distinct('kolam_id')->pluck('kolam_id');
+        $latestLogsMbwSum = 0;
+        $count = 0;
+        foreach ($uniquePondIds as $pondId) {
+            $latestLog = \App\Models\ProduksiLog::where('kolam_id', $pondId)->orderBy('created_at', 'desc')->first();
+            if ($latestLog) {
+                $latestLogsMbwSum += (float) $latestLog->mbw_gram;
+                $count++;
+            }
+        }
+        $averageMbw = $count > 0 ? ($latestLogsMbwSum / $count) : 0.0;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'active_cycles_count' => $activeCyclesCount,
+                'total_feed_used_kg' => $totalFeedUsed,
+                'total_harvest_kg' => $totalHarvest,
+                'average_mbw_gram' => round($averageMbw, 2),
+            ]
+        ], 200);
     }
 }

@@ -1,0 +1,30 @@
+# CORE SYSTEM RULES (DO NOT IGNORE)
+
+1. STACK RESTRICTIONS & PROTOCOLS:
+   - Backend MUST use Laravel (PHP).
+   - Web Frontend MUST use React.
+   - Mobile Client MUST use Flutter.
+   - REST API Base URL: `https://api.aquaculture.m-tech.fun`
+   - MQTT Broker: `m-tech.fun:1883`
+
+2. ARCHITECTURAL FORBIDDENS (SECURITY & DATABASE):
+   - NEVER connect the Flutter client directly to the SQL database.
+   - NEVER use a single global Static API Key for mobile client authentication.
+   - You MUST use dynamically generated Bearer Tokens (JWT/Sanctum) for API requests.
+
+3. DATA REDUNDANCY PREVENTION:
+   - The Flutter mobile app MUST ALWAYS consume the exact same REST API endpoints as the React web app.
+   - DO NOT create separate "mobile-only" database tables unless explicitly requested for local offline caching (e.g., SQLite/Hive).
+
+4. UI/UX AESTHETICS & STITCH AI INTEGRATION (STRICT):
+   - TARGET AUDIENCE: Accessible, but HIGHLY MODERN and FLUID. 
+   - GLOBAL THEME: STRICTLY Navy Blue to Pure White gradients. DO NOT use the old Teal/Green theme for main backgrounds.
+   - FLUTTER TRANSLATION: Build custom UI using `Container`, `BoxDecoration`, `LinearGradient`, and soft `BoxShadow`. DO NOT use stiff default widgets like `Card` or standard `AppBar`.
+
+5. ERROR HANDLING & FALLBACK:
+   - If an architectural requirement contradicts these rules, STOP immediately. Ask the user for clarification. DO NOT make assumptions.
+
+6. SCOPE LIMITATION & AUTONOMOUS DISCOVERY:
+   - REACT WEB IS OUT OF SCOPE: You are strictly forbidden from reading, modifying, or generating any code in the React Web Frontend directories.
+   - PRIMARY FOCUS: Your main task is generating the Flutter Mobile App codebase.
+   - SAFE BACKEND MODIFICATION: You are permitted to read the Laravel backend. You may ONLY add new APIs/Schemas if they are completely missing. You MUST NOT overwrite, delete, or refactor existing working backend logic.
