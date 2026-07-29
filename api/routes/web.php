@@ -9,6 +9,7 @@ $router->get('/', function () {
         'framework' => app()->version()
     ]);
 });
+<<<<<<< Updated upstream
 
 // Public route — strict rate limit: 5 attempts per minute (brute-force protection)
 $router->group(['middleware' => 'throttle:5,1'], function () use ($router) {
@@ -48,3 +49,5 @@ $router->group(['middleware' => ['auth', 'throttle:60,1']], function () use ($ro
 
 
 
+=======
+>>>>>>> Stashed changes
