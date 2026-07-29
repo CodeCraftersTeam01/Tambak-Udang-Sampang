@@ -10,7 +10,7 @@ export default function Navbar({ onLogin }) {
         <div className="logoIcon">
           <FaFish />
         </div>
-        <strong>AquiTech</strong>
+        <strong>Aquaculture</strong>
       </div>
 
       <button className="menuToggle" onClick={() => setOpen(!open)}>
