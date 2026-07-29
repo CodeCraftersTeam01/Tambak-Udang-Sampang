@@ -7,6 +7,9 @@ import UsersPage from "./pages/admin/UsersPage";
 import ProduksiPage from "./pages/admin/ProduksiPage";
 import PanenPage from "./pages/admin/PanenPage";
 import PakanPage from "./pages/admin/PakanPage";
+import Monitoring from "./pages/admin/Monitoring";
+import Devices from "./pages/admin/Devices";
+import ToastContainer from "./components/common/ToastContainer";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -17,14 +20,17 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/admin/kolam"     element={<ProtectedRoute><KolamPage /></ProtectedRoute>} />
-        <Route path="/admin/users"     element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
-        <Route path="/admin/produksi"  element={<ProtectedRoute><ProduksiPage /></ProtectedRoute>} />
-        <Route path="/admin/panen"     element={<ProtectedRoute><PanenPage /></ProtectedRoute>} />
-        <Route path="/admin/pakan"     element={<ProtectedRoute><PakanPage /></ProtectedRoute>} />
+        <Route path="/admin/dashboard"  element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/admin/kolam"      element={<ProtectedRoute><KolamPage /></ProtectedRoute>} />
+        <Route path="/admin/users"      element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
+        <Route path="/admin/produksi"   element={<ProtectedRoute><ProduksiPage /></ProtectedRoute>} />
+        <Route path="/admin/panen"      element={<ProtectedRoute><PanenPage /></ProtectedRoute>} />
+        <Route path="/admin/pakan"      element={<ProtectedRoute><PakanPage /></ProtectedRoute>} />
+        <Route path="/admin/monitoring" element={<ProtectedRoute><Monitoring /></ProtectedRoute>} />
+        <Route path="/admin/devices"    element={<ProtectedRoute><Devices /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

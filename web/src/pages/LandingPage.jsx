@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import LocomotiveScroll from "locomotive-scroll";
+import { motion } from "framer-motion";
 
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
@@ -9,6 +9,7 @@ import LoginModal from "../components/auth/LoginModal";
 import ThreeBackground from "../components/ThreeBackground";
 import ParallaxBackground from "../components/ParallaxBackground";
 import UsiaBenurSection from "../components/landing/UsiaBenurSection";
+import LiveStatsSection from "../components/landing/LiveStatsSection";
 
 import "../styles/landing.css";
 
@@ -38,15 +39,22 @@ export default function LandingPage() {
       <ThreeBackground />
       <ParallaxBackground />
 
-      <Navbar onLogin={() => setShowLogin(true)} />
-      
-      <main>
-        <HeroSection onCtaClick={() => setShowLogin(true)} />
-        <FeatureCards />
-        <UsiaBenurSection />
-      </main>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <Navbar onLogin={() => setShowLogin(true)} />
+        
+        <main>
+          <HeroSection onCtaClick={() => setShowLogin(true)} />
+          <FeatureCards />
+          <LiveStatsSection />
+          <UsiaBenurSection />
+        </main>
 
-      <Footer />
+        <Footer />
+      </motion.div>
 
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </div>

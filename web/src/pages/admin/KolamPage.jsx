@@ -17,7 +17,6 @@ function Toast({ message, type, onHide }) {
 function KolamModal({ mode, data, onClose, onSaved }) {
   const [form, setForm] = useState(data || emptyForm);
   const [saving, setSaving] = useState(false);
-  const token = localStorage.getItem("token");
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -34,7 +33,7 @@ function KolamModal({ mode, data, onClose, onSaved }) {
         onSaved("Kolam berhasil ditambahkan!", "success");
       }
       onClose();
-    } catch (err) {
+    } catch {
       onSaved("Terjadi kesalahan.", "error");
     } finally {
       setSaving(false);
@@ -118,25 +117,28 @@ export default function KolamPage() {
   const [detailModal, setDetailModal] = useState(null); // stores kolam object
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState(null);
-  const token = localStorage.getItem("token");
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+  }, []);
 
   const fetchKolam = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiClient.get('/kolam');
       setKolams(res.data.data || []);
-    } catch (err) {
+    } catch {
       showToast("Gagal memuat data kolam.", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
-  useEffect(() => { fetchKolam(); }, [fetchKolam]);
-
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-  };
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchKolam();
+    });
+  }, [fetchKolam]);
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
@@ -144,7 +146,7 @@ export default function KolamPage() {
       await apiClient.delete(`/kolam/${confirmDelete.id}`);
       showToast("Kolam berhasil dihapus!");
       fetchKolam();
-    } catch (err) {
+    } catch {
       showToast("Gagal menghapus kolam.", "error");
     } finally {
       setConfirmDelete(null);

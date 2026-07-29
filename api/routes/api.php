@@ -29,6 +29,7 @@ $router->group(['middleware' => ['auth', 'throttle:60,1']], function () use ($ro
 
 // Public Legacy Routes
 $router->get('api/public/usia-benur', 'ProduksiController@publicUsiaBenur');
+$router->get('api/public/stats', 'PublicStatsController@index');
 
 // Auth Legacy Routes
 $router->group(['prefix' => 'api/auth', 'middleware' => 'throttle:5,1'], function () use ($router) {
@@ -96,13 +97,6 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
 
     // Laporan
     $router->get('laporan/{kolam_id}', 'LaporanController@show');
-<<<<<<< Updated upstream
-=======
-
-    // Devices & Calibration
-    $router->get('devices',                  'DeviceController@index');
-    $router->get('devices/{id}',             'DeviceController@show');
-    $router->get('devices/{id}/sensors',     'DeviceController@sensors');
     $router->get('devices/{id}/calibration', 'DeviceController@calibration');
     $router->put('devices/{id}/calibration', 'DeviceController@updateCalibration');
 
@@ -120,5 +114,5 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
         $router->put('users/{id}', 'UserController@update');
         $router->delete('users/{id}', 'UserController@destroy');
     });
->>>>>>> Stashed changes
+
 });

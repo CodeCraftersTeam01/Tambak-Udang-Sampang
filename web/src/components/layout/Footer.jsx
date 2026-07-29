@@ -13,7 +13,7 @@ export default function Footer() {
               <FaFish />
             </div>
             <span className="logoText">
-              Aqui<span className="logoAccent">Tech</span>
+              Aqua<span className="logoAccent">culture</span>
             </span>
           </div>
           <p>
@@ -26,8 +26,9 @@ export default function Footer() {
           <h3>Navigation</h3>
           <ul className="footerLinks">
             <li><a href="#home">Home</a></li>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#technology">Technology</a></li>
+            <li><a href="#features">Fitur</a></li>
+            <li><a href="#stats">Data Live</a></li>
+            <li><a href="#benur">Status Benur</a></li>
           </ul>
         </div>
 
@@ -42,7 +43,7 @@ export default function Footer() {
       </div>
 
       <div className="footerBottom">
-        <span>&copy; {new Date().getFullYear()} AquiTech. All rights reserved.</span>
+        <span>&copy; {new Date().getFullYear()} Aquaculture. All rights reserved.</span>
         <span>Built with IoT & AI</span>
       </div>
     </footer>

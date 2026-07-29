@@ -1,4 +1,4 @@
-import { FaFish, FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes } from "react-icons/fa";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 
@@ -25,9 +25,9 @@ export default function Navbar({ onLogin }) {
   return (
     <header className={`navbar${hidden ? " hidden" : ""}`} ref={navRef}>
       <a href="/" className="logo">
-        <img src="/favicon.png" alt="AquiTech Logo" style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover" }} />
+        <img src="/favicon.png" alt="Aquaculture Logo" style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover" }} />
         <span className="logoText">
-          Aqui<span className="logoAccent">Tech</span>
+          Aqua<span className="logoAccent">culture</span>
         </span>
       </a>
 
@@ -37,9 +37,13 @@ export default function Navbar({ onLogin }) {
 
       <nav className={`navLinks${open ? " open" : ""}`}>
         <a href="#home" onClick={() => setOpen(false)}>Home</a>
-        <a href="#features" onClick={() => setOpen(false)}>Features</a>
-        <a href="#technology" onClick={() => setOpen(false)}>Technology</a>
-        <a href="#contact" onClick={() => setOpen(false)}>Contact</a>
+        <a href="#features" onClick={() => setOpen(false)}>Fitur</a>
+        <a href="#stats" onClick={() => setOpen(false)}>Data Live</a>
+        <a href="#benur" onClick={() => setOpen(false)}>Status Benur</a>
+        <a href="#contact" onClick={() => setOpen(false)}>Kontak</a>
+        <button className="navBtn navSignInMobile" style={{ width: "100%", marginTop: "4px" }} onClick={() => { setOpen(false); onLogin(); }}>
+          Sign In
+        </button>
       </nav>
 
       <button className="navBtn" onClick={onLogin}>

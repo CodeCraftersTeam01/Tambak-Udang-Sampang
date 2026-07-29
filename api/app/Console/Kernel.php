@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \Illuminate\Console\KeyGenerateCommand::class,
         \App\Console\Commands\MqttListenerDaemon::class,
+        \App\Console\Commands\MqttSubscribeCommand::class,
     ];
 
     /**

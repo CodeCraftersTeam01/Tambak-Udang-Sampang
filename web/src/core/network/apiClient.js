@@ -1,5 +1,6 @@
 import axios from 'axios';
 import API_URL from '../../services/api';
+import { toast } from '../utils/toast';
 
 const apiClient = axios.create({
   baseURL: `${API_URL}/api`,
@@ -30,9 +31,9 @@ apiClient.interceptors.response.use((response) => {
     }
   } else if (status === 422) {
     const message = error.response?.data?.message || 'Validation error';
-    alert(`Error 422: ${message}`);
+    toast.error(`Validation Error: ${message}`);
   } else if (status >= 500) {
-    alert(`Server Error: ${error.response?.data?.message || 'Internal Server Error'}`);
+    toast.error(`Server Error: ${error.response?.data?.message || 'Internal Server Error'}`);
   }
   return Promise.reject(error);
 });

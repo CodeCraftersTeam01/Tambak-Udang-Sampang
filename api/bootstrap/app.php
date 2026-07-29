@@ -28,6 +28,7 @@ $app->withFacades();
 $app->withEloquent();
 
 $app->configure('auth');
+$app->configure('jwt');
 
 /*
 |--------------------------------------------------------------------------
@@ -123,5 +124,33 @@ $app->router->group([
         require __DIR__.'/../routes/api.php';
     }
 });
+
+// Auto start MQTT subscriber in background if not running and not in CLI mode
+if (php_sapi_name() !== 'cli') {
+    try {
+        $pidFile = storage_path('logs/mqtt_subscribe.pid');
+        $isRunning = false;
+        if (file_exists($pidFile)) {
+            $pid = (int) file_get_contents($pidFile);
+            if ($pid > 0) {
+                if (function_exists('posix_kill')) {
+                    $isRunning = posix_kill($pid, 0);
+                } else {
+                    $output = [];
+                    exec(sprintf('ps -p %d', $pid), $output);
+                    $isRunning = count($output) > 1;
+                }
+            }
+        }
+        
+        if (!$isRunning) {
+            $artisanPath = base_path('artisan');
+            $command = "php " . escapeshellarg($artisanPath) . " mqtt:subscribe > /dev/null 2>&1 &";
+            exec($command);
+        }
+    } catch (\Throwable $e) {
+        // Silently ignore
+    }
+}
 
 return $app;

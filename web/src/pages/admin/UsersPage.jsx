@@ -18,7 +18,7 @@ function Toast({ message, type, onHide }) {
 function UserModal({ mode, data, onClose, onSaved }) {
   const [form, setForm] = useState(
     data
-      ? { name: data.name, email: data.email, password: "", role: data.role || "petambak", nomor_hp: data.nomor_hp || "", alamat: data.alamat || "" }
+      ? { name: data.name, email: data.email, password: "", role: data.role?.name || data.role || "petambak", nomor_hp: data.nomor_hp || "", alamat: data.alamat || "" }
       : emptyForm
   );
   const [saving, setSaving] = useState(false);
@@ -247,8 +247,8 @@ export default function UsersPage() {
                       </td>
                       <td className="tdMuted">{u.email}</td>
                       <td>
-                        <span className={`tableBadge ${u.role}`}>
-                          {u.role || '-'}
+                        <span className={`tableBadge ${u.role?.name || u.role}`}>
+                          {u.role?.name || u.role || '-'}
                         </span>
                       </td>
                       <td className="tdMuted">{u.nomor_hp || "-"}</td>
