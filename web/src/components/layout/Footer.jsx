@@ -13,7 +13,7 @@ export default function Footer() {
               <FaFish />
             </div>
             <span className="logoText">
-              Aqui<span className="logoAccent">Tech</span>
+              Aqua<span className="logoAccent">culture</span>
             </span>
           </div>
           <p>
@@ -43,7 +43,7 @@ export default function Footer() {
       </div>
 
       <div className="footerBottom">
-        <span>&copy; {new Date().getFullYear()} AquiTech. All rights reserved.</span>
+        <span>&copy; {new Date().getFullYear()} Aquaculture. All rights reserved.</span>
         <span>Built with IoT & AI</span>
       </div>
     </footer>

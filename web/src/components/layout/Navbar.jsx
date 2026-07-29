@@ -25,9 +25,9 @@ export default function Navbar({ onLogin }) {
   return (
     <header className={`navbar${hidden ? " hidden" : ""}`} ref={navRef}>
       <a href="/" className="logo">
-        <img src="/favicon.png" alt="AquiTech Logo" style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover" }} />
+        <img src="/favicon.png" alt="Aquaculture Logo" style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover" }} />
         <span className="logoText">
-          Aqui<span className="logoAccent">Tech</span>
+          Aqua<span className="logoAccent">culture</span>
         </span>
       </a>
 

@@ -71,9 +71,9 @@ export default function DashboardLayout({ children, title }) {
       <aside className={`dashSidebar${isSidebarOpen ? " open" : ""}`}>
         <div className="sidebarLogoContainer">
           <a href="/" className="sidebarLogo">
-            <img src="/favicon.png" alt="AquiTech Logo" />
+            <img src="/favicon.png" alt="Aquaculture Logo" />
             <span className="sidebarLogoText">
-              Aqui<span className="sidebarLogoAccent">Tech</span>
+              Aqua<span className="sidebarLogoAccent">culture</span>
             </span>
           </a>
           <button className="sidebarCloseBtn" onClick={() => setIsSidebarOpen(false)} title="Close Sidebar">

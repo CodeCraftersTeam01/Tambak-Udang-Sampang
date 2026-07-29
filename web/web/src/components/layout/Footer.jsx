@@ -5,7 +5,7 @@ export default function Footer() {
     <footer id="contact" className="footer">
       <div className="footerGrid">
         <div>
-          <h2>AquiTech</h2>
+          <h2>Aquaculture</h2>
           <p>Smart Aquaculture Monitoring System berbasis IoT dan dashboard web.</p>
         </div>
 
