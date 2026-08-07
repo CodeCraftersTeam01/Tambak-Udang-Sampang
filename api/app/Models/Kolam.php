@@ -25,4 +25,19 @@ class Kolam extends Model
     {
         return $this->hasMany(Relay::class);
     }
+
+    public function pakans()
+    {
+        return $this->hasMany(Pakan::class, 'kolam_id', 'id');
+    }
+
+    public function panens()
+    {
+        return $this->hasMany(Panen::class, 'kolam_id', 'id');
+    }
+
+    public function produksiLogs()
+    {
+        return $this->hasMany(ProduksiLog::class, 'kolam_id', 'id');
+    }
 }

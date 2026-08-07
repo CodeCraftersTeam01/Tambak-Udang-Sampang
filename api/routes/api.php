@@ -20,6 +20,8 @@ $router->group(['middleware' => ['auth', 'throttle:60,1']], function () use ($ro
     $router->get('production-management/summary', 'ProduksiController@productionSummary');
     $router->get('production-cycles', 'ProduksiController@index');
     $router->get('production-cycles/{id}', 'ProduksiController@show');
+    $router->get('auth/me', 'AuthController@me');
+    $router->get('ponds/{id}/sensors/history', 'MonitoringController@history');
 });
 
 
@@ -102,9 +104,14 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
 
     // Monitoring
     $router->get('monitoring/latest', 'MonitoringController@latest');
+    $router->get('ponds/{id}/sensors/history', 'MonitoringController@history');
 
     // Farm Management summary under /api
     $router->get('farm-management/summary', 'KolamController@farmSummary');
+
+    // Thresholds & Calibration Configuration
+    $router->post('thresholds/update', 'ThresholdController@update');
+    $router->post('calibration/update', 'CalibrationController@update');
 
     // User CRUD
     $router->group(['middleware' => 'role:super_admin,admin'], function () use ($router) {

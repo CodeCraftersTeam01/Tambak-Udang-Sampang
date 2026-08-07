@@ -1,9 +1,21 @@
-# Ignore folder apk_tambak
-apk_tambak/
-
 # Ignore Android Application binary files (APK/AAB)
 *.apk
 *.aab
 *.dex
 *.class
-apk_tambak*.apk
+
+# Flutter / Mobile
+/apk_tambak/build/
+/apk_tambak/.dart_tool/
+/apk_tambak/.idea/
+/apk_tambak/.vscode/
+/apk_tambak/*.iml
+/apk_tambak/google-services.json
+/apk_tambak/GoogleService-Info.plist
+/apk_tambak/ios/Pods/
+/apk_tambak/android/.gradle/
+
+# API / Lumen Backend
+api/.env
+api/storage/firebase/credentials.json
+api/vendor/

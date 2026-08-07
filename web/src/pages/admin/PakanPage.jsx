@@ -34,7 +34,10 @@ function PakanModal({ mode, data, kolams, onClose, onSaved }) {
         onSaved("Pakan ditambahkan!");
       }
       onClose();
-    } catch { onSaved("Terjadi kesalahan.", "error"); } finally { setSaving(false); }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan.";
+      onSaved(msg, "error");
+    } finally { setSaving(false); }
   };
 
   return (

@@ -62,4 +62,53 @@ class MonitoringController extends Controller
             ],
         ]);
     }
+
+    public function history($id)
+    {
+        $pondId = (int) $id;
+
+        $rows = DB::select("
+            SELECT
+                st.code,
+                sr.value,
+                sr.recorded_at
+            FROM sensor_readings sr
+            JOIN sensors s ON s.id = sr.sensor_id
+            JOIN sensor_types st ON st.id = s.sensor_type_id
+            JOIN devices d ON d.id = s.device_id
+            WHERE d.pond_id = ?
+            ORDER BY sr.recorded_at DESC, sr.id DESC
+            LIMIT 1000
+        ", [$pondId]);
+
+        $histories = [
+            'temperature' => [],
+            'ph' => [],
+            'do' => [],
+            'tds' => [],
+        ];
+
+        foreach ($rows as $row) {
+            $code = $row->code;
+            if (array_key_exists($code, $histories) && count($histories[$code]) < 150) {
+                $histories[$code][] = [
+                    'value' => (float) $row->value,
+                    'recorded_at' => $row->recorded_at,
+                ];
+            }
+        }
+
+        // Reverse to chronological order (oldest to newest)
+        foreach ($histories as $code => $list) {
+            $histories[$code] = array_reverse($list);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'pond_id' => $pondId,
+                'history' => $histories,
+            ]
+        ]);
+    }
 }

@@ -13,9 +13,9 @@ function Toast({ message, type, onHide }) {
 function LogHarianModal({ kolam_id, onClose, onSaved }) {
   const [form, setForm] = useState({
     kolam_id: String(kolam_id),
-    pakan_harian_kg: "",
+    pakan_kg: "",
     mbw_gram: "",
-    kematian_ekor: "",
+    mortality_ekor: "",
     suhu: "",
     ph: "",
     do: "",
@@ -31,7 +31,8 @@ function LogHarianModal({ kolam_id, onClose, onSaved }) {
       onSaved("Log harian berhasil dicatat!", "success");
       onClose();
     } catch (err) {
-      onSaved("Gagal mencatat log harian.", "error");
+      const msg = err.response?.data?.message || err.response?.data?.error || "Gagal mencatat log harian.";
+      onSaved(msg, "error");
     } finally {
       setSaving(false);
     }
@@ -50,11 +51,11 @@ function LogHarianModal({ kolam_id, onClose, onSaved }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
             <div className="dashFormGroup" style={{ marginBottom: 0 }}>
               <label>Pakan (kg)</label>
-              <input name="pakan_harian_kg" type="number" step="0.01" value={form.pakan_harian_kg} onChange={handleChange} required />
+              <input name="pakan_kg" type="number" step="0.01" value={form.pakan_kg} onChange={handleChange} required />
             </div>
             <div className="dashFormGroup" style={{ marginBottom: 0 }}>
               <label>Kematian (ekor)</label>
-              <input name="kematian_ekor" type="number" value={form.kematian_ekor} onChange={handleChange} required />
+              <input name="mortality_ekor" type="number" value={form.mortality_ekor} onChange={handleChange} required />
             </div>
             <div className="dashFormGroup" style={{ marginBottom: 0 }}>
               <label>MBW (gram)</label>
@@ -105,7 +106,10 @@ function ProduksiModal({ mode, data, kolams, onClose, onSaved }) {
         onSaved("Produksi ditambahkan!");
       }
       onClose();
-    } catch { onSaved("Terjadi kesalahan.", "error"); } finally { setSaving(false); }
+    } catch (err) { 
+      const msg = err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan.";
+      onSaved(msg, "error"); 
+    } finally { setSaving(false); }
   };
 
   return (

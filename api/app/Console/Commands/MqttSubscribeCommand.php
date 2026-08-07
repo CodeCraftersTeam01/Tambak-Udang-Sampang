@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class MqttSubscribeCommand extends Command
 {
@@ -14,9 +16,26 @@ class MqttSubscribeCommand extends Command
     {
         $this->info("Starting MQTT listener...");
 
+        // Kill previous running instance
+        $pidFile = storage_path('logs/mqtt_subscribe.pid');
+        if (file_exists($pidFile)) {
+            $oldPid = (int) file_get_contents($pidFile);
+            if ($oldPid > 0 && $oldPid !== getmypid()) {
+                $isWindows = defined('PHP_OS_FAMILY') ? PHP_OS_FAMILY === 'Windows' : (strncasecmp(PHP_OS, 'WIN', 3) === 0);
+                if ($isWindows) {
+                    exec("taskkill /F /PID $oldPid 2>&1");
+                } else {
+                    if (function_exists('posix_kill')) {
+                        posix_kill($oldPid, 9);
+                    } else {
+                        exec("kill -9 $oldPid 2>&1");
+                    }
+                }
+            }
+        }
+
         // Save current process PID
         try {
-            $pidFile = storage_path('logs/mqtt_subscribe.pid');
             $dir = dirname($pidFile);
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
@@ -31,14 +50,57 @@ class MqttSubscribeCommand extends Command
         $user = env('MQTT_USER', 'mhs1');
         $pass = env('MQTT_PASS', 'mhs123');
 
-        // Path mosquitto_sub
-        $mosquittoPath = is_file('/opt/homebrew/bin/mosquitto_sub') 
-            ? '/opt/homebrew/bin/mosquitto_sub' 
-            : 'mosquitto_sub';
+        // Resolve dynamic mosquitto_sub binary path based on OS family
+        $mosquittoPath = null;
+        $isWindows = defined('PHP_OS_FAMILY') ? PHP_OS_FAMILY === 'Windows' : (strncasecmp(PHP_OS, 'WIN', 3) === 0);
+        if ($isWindows) {
+            $paths = [
+                'C:\\Program Files\\mosquitto\\mosquitto_sub.exe',
+                'C:\\Program Files (x86)\\mosquitto\\mosquitto_sub.exe',
+            ];
+            foreach ($paths as $path) {
+                if (is_file($path)) {
+                    $mosquittoPath = $path;
+                    break;
+                }
+            }
+            if (!$mosquittoPath) {
+                @exec('where mosquitto_sub.exe 2>&1', $output, $returnVar);
+                if ($returnVar === 0 && !empty($output)) {
+                    $mosquittoPath = trim($output[0]);
+                }
+            }
+        } else {
+            $paths = [
+                '/usr/bin/mosquitto_sub',
+                '/usr/local/bin/mosquitto_sub',
+                '/opt/homebrew/bin/mosquitto_sub',
+            ];
+            foreach ($paths as $path) {
+                if (is_file($path)) {
+                    $mosquittoPath = $path;
+                    break;
+                }
+            }
+            if (!$mosquittoPath) {
+                @exec('which mosquitto_sub 2>&1', $output, $returnVar);
+                if ($returnVar === 0 && !empty($output)) {
+                    $mosquittoPath = trim($output[0]);
+                }
+            }
+        }
+
+        // Fallback to plain binary if not found in specific paths
+        if (!$mosquittoPath) {
+            $this->warn("mosquitto_sub binary was not found in common installation paths. Attempting to run via system PATH...");
+            $mosquittoPath = 'mosquitto_sub';
+        }
+
+        $escapedMosquittoPath = '"' . trim($mosquittoPath, '"') . '"';
 
         $command = sprintf(
             '%s -h %s -p %d -u %s -P %s -t "pkm2026/#" -v',
-            $mosquittoPath,
+            $escapedMosquittoPath,
             escapeshellarg($host),
             (int) $port,
             escapeshellarg($user),
@@ -67,7 +129,6 @@ class MqttSubscribeCommand extends Command
             $this->info("Received line: " . $line);
 
             // Format mosquitto_sub -v is: topic payload
-            // Topics do not contain space, so we split by the first space
             $spacePos = strpos($line, ' ');
             if ($spacePos === false) {
                 continue;
@@ -80,15 +141,14 @@ class MqttSubscribeCommand extends Command
             $this->info("Message: " . $message);
 
             $segments = explode('/', $topic);
-            // Segments: pkm2026, {device_code}, {sensor_code}
             if (count($segments) < 3 || $segments[0] !== 'pkm2026') {
                 continue;
             }
 
             $deviceCode = $segments[1];
-            $sensorKey = $segments[2]; // e.g. suhu, ph, tds, do, status
+            $sensorKey = $segments[2];
 
-            // Cari device berdasarkan device_code
+            // Find device by device_code
             $device = DB::table('devices')->where('device_code', $deviceCode)->first();
             if (!$device) {
                 $this->warn("No device registered with device code: " . $deviceCode);
@@ -100,13 +160,13 @@ class MqttSubscribeCommand extends Command
                 'last_seen_at' => date('Y-m-d H:i:s')
             ]);
 
-            // Jika itu status online/offline
+            // Status message
             if ($sensorKey === 'status') {
                 $this->info("Device {$deviceCode} is " . $message);
                 continue;
             }
 
-            // Jika itu topik kalibrasi (pkm2026/{device_code}/calibration/...)
+            // Calibration config sync
             if ($sensorKey === 'calibration') {
                 $subSegment = $segments[3] ?? null;
                 if ($subSegment === 'state') {
@@ -114,7 +174,6 @@ class MqttSubscribeCommand extends Command
                     if (is_array($payloadData)) {
                         $revision = $payloadData['revision'] ?? 1;
                         
-                        // Periksa apakah revisi ini sudah ada di DB
                         $exists = DB::table('device_calibration_configs')
                             ->where('device_id', $device->id)
                             ->where('revision', $revision)
@@ -135,7 +194,6 @@ class MqttSubscribeCommand extends Command
                                     'updated_at' => date('Y-m-d H:i:s')
                                 ]);
                         } else {
-                            // Nonaktifkan konfigurasi aktif lainnya
                             DB::table('device_calibration_configs')
                                 ->where('device_id', $device->id)
                                 ->update(['is_active' => 0]);
@@ -162,20 +220,23 @@ class MqttSubscribeCommand extends Command
                 continue;
             }
 
-            // Jika itu topik aerator (pkm2026/{device_code}/aerator/...)
+            // Aerator/Relay sync
             if (strpos($sensorKey, 'aerator') === 0) {
                 $subSegment = $segments[3] ?? null;
                 $this->info("Aerator Event - Device: {$deviceCode}, Aerator: {$sensorKey}, Type: {$subSegment}, Value: {$message}");
                 continue;
             }
 
-            // Mapping dari key MQTT ke sensor type code di database
+            // Mappings
             $typeMapping = [
                 'suhu' => 'temperature',
+                'temp' => 'temperature',
+                'temperature' => 'temperature',
                 'ph' => 'ph',
                 'tds' => 'tds',
                 'do' => 'do',
                 'level' => 'water_level',
+                'water_level' => 'water_level',
             ];
 
             if (!isset($typeMapping[$sensorKey])) {
@@ -191,12 +252,12 @@ class MqttSubscribeCommand extends Command
                 continue;
             }
 
-            // Cari sensor
+            // Find sensor
             $sensor = DB::table('sensors')
                 ->join('sensor_types', 'sensor_types.id', '=', 'sensors.sensor_type_id')
                 ->where('sensors.device_id', $device->id)
                 ->where('sensor_types.code', $sensorTypeCode)
-                ->select('sensors.id', 'sensor_types.unit')
+                ->select('sensors.id', 'sensors.name', 'sensor_types.id as sensor_type_id', 'sensor_types.unit')
                 ->first();
 
             if ($sensor) {
@@ -210,6 +271,81 @@ class MqttSubscribeCommand extends Command
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
                 $this->info("Inserted reading for device {$deviceCode}, sensor type {$sensorTypeCode}: {$value}");
+
+                // Independent Threshold & Notification Engine
+                try {
+                    $doubleValue = (float) $value;
+                    $pondId = $device->pond_id;
+                    $sensorTypeId = $sensor->sensor_type_id;
+
+                    // Lightly cache the threshold database query for 30 seconds
+                    $threshold = Cache::remember(
+                        "sensor_threshold_{$pondId}_{$sensorTypeId}",
+                        30,
+                        function () use ($pondId, $sensorTypeId) {
+                            return DB::table('sensor_thresholds')
+                                ->where('pond_id', $pondId)
+                                ->where('sensor_type_id', $sensorTypeId)
+                                ->where('is_active', 1)
+                                ->first();
+                        }
+                    );
+
+                    $shouldWarn = false;
+                    $breachedLimit = '';
+                    $minVal = null;
+                    $maxVal = null;
+
+                    if ($threshold) {
+                        if ($threshold->min_value !== null) {
+                            $minVal = (float) $threshold->min_value;
+                        }
+                        if ($threshold->max_value !== null) {
+                            $maxVal = (float) $threshold->max_value;
+                        }
+                    } else {
+                        // Log warning and fallback to default type normal min/max
+                        Log::warning("Thresholds are missing for pond {$pondId} and sensor type {$sensorTypeCode}. Using fallback values from sensor_types table.");
+                        
+                        $sensorTypeObj = DB::table('sensor_types')->where('code', $sensorTypeCode)->first();
+                        if ($sensorTypeObj) {
+                            if ($sensorTypeObj->normal_min !== null) {
+                                $minVal = (float) $sensorTypeObj->normal_min;
+                            }
+                            if ($sensorTypeObj->normal_max !== null) {
+                                $maxVal = (float) $sensorTypeObj->normal_max;
+                            }
+                        }
+                    }
+
+                    // Strict Condition Check
+                    if ($minVal !== null && $doubleValue < $minVal) {
+                        $shouldWarn = true;
+                        $breachedLimit = 'TERLALU RENDAH';
+                    } elseif ($maxVal !== null && $doubleValue > $maxVal) {
+                        $shouldWarn = true;
+                        $breachedLimit = 'TERLALU TINGGI';
+                    }
+
+                    // Cooldown Cache Check (60 seconds)
+                    if ($shouldWarn) {
+                        $cacheKey = "mqtt_cooldown_{$pondId}_{$sensorTypeCode}";
+                        if (!Cache::has($cacheKey)) {
+                            $sensorName = $sensor->name ?? ucfirst($sensorKey);
+                            $notificationString = "BAHAYA: {$sensorName} Kolam {$breachedLimit} ({$doubleValue})";
+
+                            $pushService = new \App\Services\FirebasePushService();
+                            $pushService->sendWarningNotification($notificationString, $notificationString);
+                            $this->info("Push Notification sent: {$notificationString}");
+                            Cache::put($cacheKey, true, 60);
+                        } else {
+                            $this->warn("Throttled: {$sensorTypeCode} is on 60s cooldown.");
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Firebase Notification Failed: ' . $e->getMessage());
+                    $this->error('Firebase Notification Failed: ' . $e->getMessage());
+                }
             } else {
                 $this->warn("No sensor found for device {$deviceCode} with sensor type: " . $sensorTypeCode);
             }
