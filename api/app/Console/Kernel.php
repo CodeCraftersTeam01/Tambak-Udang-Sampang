@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         \Illuminate\Console\KeyGenerateCommand::class,
         \App\Console\Commands\MqttListenerDaemon::class,
         \App\Console\Commands\MqttSubscribeCommand::class,
+        \App\Console\Commands\PruneSensorLogs::class,
     ];
 
     /**
@@ -26,6 +27,6 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        //
+        $schedule->command('sensors:prune')->daily();
     }
 }

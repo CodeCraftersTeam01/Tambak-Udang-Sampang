@@ -9,7 +9,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 import DashboardLayout from "../../components/admin/DashboardLayout";
 import apiClient from "../../core/network/apiClient";
 
-const empty = { tanggal_panen: "", jumlah_panen_kg: "", jenis_panen: "parsial", kolam_id: "" };
+const empty = { tanggal_panen: "", jumlah_panen_kg: "", jenis_panen: "parsial", kolam_id: "", shrimp_size: "", sale_price: "" };
 const COLORS = ["#0071e3", "#30d158", "#ff9f0a", "#ff3b30", "#5e5ce6"];
 
 function Toast({ message, type, onHide }) {
@@ -19,7 +19,14 @@ function Toast({ message, type, onHide }) {
 
 function PanenModal({ mode, data, kolams, onClose, onSaved }) {
   const [form, setForm] = useState(
-    data ? { tanggal_panen: data.tanggal_panen?.slice(0, 10) || "", jumlah_panen_kg: data.jumlah_panen_kg, jenis_panen: data.jenis_panen, kolam_id: String(data.kolam_id) } : empty
+    data ? { 
+      tanggal_panen: data.tanggal_panen?.slice(0, 10) || "", 
+      jumlah_panen_kg: data.jumlah_panen_kg, 
+      jenis_panen: data.jenis_panen, 
+      kolam_id: String(data.kolam_id),
+      shrimp_size: data.shrimp_size || "",
+      sale_price: data.sale_price || ""
+    } : empty
   );
   const [saving, setSaving] = useState(false);
   const handleSubmit = async (e) => {
@@ -33,7 +40,10 @@ function PanenModal({ mode, data, kolams, onClose, onSaved }) {
         onSaved("Panen ditambahkan!");
       }
       onClose();
-    } catch { onSaved("Terjadi kesalahan.", "error"); } finally { setSaving(false); }
+    } catch (err) { 
+      const msg = err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan.";
+      onSaved(msg, "error"); 
+    } finally { setSaving(false); }
   };
 
   return (
@@ -59,6 +69,16 @@ function PanenModal({ mode, data, kolams, onClose, onSaved }) {
             <div className="dashFormGroup">
               <label>Jumlah (kg)</label>
               <input type="number" step="0.01" value={form.jumlah_panen_kg} onChange={(e) => setForm({ ...form, jumlah_panen_kg: e.target.value })} placeholder="0.00" required />
+            </div>
+          </div>
+          <div className="dashFormRow">
+            <div className="dashFormGroup">
+              <label>Ukuran Udang (Size)</label>
+              <input value={form.shrimp_size} onChange={(e) => setForm({ ...form, shrimp_size: e.target.value })} placeholder="cth: 100, PL-10" required />
+            </div>
+            <div className="dashFormGroup">
+              <label>Harga Jual (Rp/kg)</label>
+              <input type="number" value={form.sale_price} onChange={(e) => setForm({ ...form, sale_price: e.target.value })} placeholder="Harga per kg" required />
             </div>
           </div>
           <div className="dashFormGroup">

@@ -144,7 +144,10 @@ class DeviceController extends Controller
 
     public function calibration(string $id)
     {
-        $device = DB::table('devices')->where('id', $id)->first();
+        $device = DB::table('devices')
+            ->where('id', $id)
+            ->orWhere('pond_id', $id)
+            ->first();
 
         if (!$device) {
             return response()->json([
@@ -154,14 +157,14 @@ class DeviceController extends Controller
         }
 
         $config = DB::table('device_calibration_configs')
-            ->where('device_id', $id)
+            ->where('device_id', $device->id)
             ->where('is_active', 1)
             ->orderByDesc('id')
             ->first();
 
         if (!$config) {
             $config = [
-                'device_id' => (int) $id,
+                'device_id' => (int) $device->id,
                 'pond_id' => $device->pond_id,
                 'ph_slope' => 3.5,
                 'ph_offset' => 1.9,
@@ -173,17 +176,29 @@ class DeviceController extends Controller
                 'revision' => 1,
                 'is_active' => 1,
             ];
+        } else {
+            $config = (array) $config;
         }
+
+        $sensors = DB::table('sensors')
+            ->where('device_id', $device->id)
+            ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $config,
+            'data' => array_merge($config, [
+                'device' => $device,
+                'sensors' => $sensors,
+            ]),
         ]);
     }
 
     public function updateCalibration(Request $request, string $id)
     {
-        $device = DB::table('devices')->where('id', $id)->first();
+        $device = DB::table('devices')
+            ->where('id', $id)
+            ->orWhere('pond_id', $id)
+            ->first();
 
         if (!$device) {
             return response()->json([

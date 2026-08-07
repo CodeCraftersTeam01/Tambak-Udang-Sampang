@@ -33,8 +33,7 @@ This pipeline has been updated to strictly align with the Lecturer's Master Spec
   - Form to display and record fry stocking events.
 - [ ] **Mobile: Treatments Logs (`/production-cycles/{id}/treatments`)**
   - Form to record probiotics/chemicals application.
-- [ ] **Mobile: Harvest Recording (`/production-cycles/{id}/harvests`)**
-  - Re-align harvest screen to POST cycle harvests.
+- [x] **Mobile: Harvest Recording (`/production-cycles/{id}/harvests`)** -> *Deprecated: Moved to Web Dashboard*
 - [ ] **Mobile: Operational Costs (`/production-cycles/{id}/costs`)**
   - UI to add and view operational cost logs.
 - [ ] **Mobile: Activities Logging (`/ponds/{id}/activities`)**

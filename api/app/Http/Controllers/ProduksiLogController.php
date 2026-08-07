@@ -30,7 +30,7 @@ class ProduksiLogController extends Controller
 
     public function index($kolam_id)
     {
-        $logs = ProduksiLog::where('kolam_id', $kolam_id)->orderBy('created_at', 'asc')->get();
+        $logs = ProduksiLog::with('kolam')->where('kolam_id', $kolam_id)->orderBy('created_at', 'asc')->get();
         return response()->json([
             'message' => 'Success',
             'data'    => $logs
