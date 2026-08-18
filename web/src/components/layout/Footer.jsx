@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { FaFish, FaEnvelope, FaGlobe, FaMapMarkerAlt } from "react-icons/fa";
+import { FaEnvelope, FaGlobe, FaMapMarkerAlt } from "react-icons/fa";
 
 export default function Footer() {
   const sectionRef = useRef(null);
@@ -8,14 +8,16 @@ export default function Footer() {
     <footer id="contact" className="footer" ref={sectionRef}>
       <div className="footerGrid">
         <div className="footerBrand">
-          <div className="logo" style={{ marginBottom: 0 }}>
-            <div className="logoIcon">
-              <FaFish />
-            </div>
+          <a href="/" className="logo" style={{ marginBottom: 0, textDecoration: "none" }}>
+            <img
+              src="/favicon.png"
+              alt="Aquaculture Logo"
+              style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover" }}
+            />
             <span className="logoText">
               Aqua<span className="logoAccent">culture</span>
             </span>
-          </div>
+          </a>
           <p>
             Smart Aquaculture Monitoring System berbasis IoT dan dashboard web
             untuk mendukung efisiensi budidaya tambak udang di Indonesia.

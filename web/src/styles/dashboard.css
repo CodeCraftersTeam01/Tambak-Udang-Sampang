@@ -812,11 +812,20 @@ tbody td {
   gap: 6px;
   margin-bottom: 12px;
 }
+
+/* Animasi smooth hanya pada angka nilai saat data berubah */
+@keyframes valuePop {
+  0%   { opacity: 0; transform: translateY(-6px) scale(0.9); }
+  60%  { opacity: 1; transform: translateY(1px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
 .sensorValue strong {
+  display: inline-block;
   font-size: 34px;
   font-weight: 700;
   color: var(--dash-text);
   line-height: 1;
+  animation: valuePop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .sensorValue span {
   color: var(--dash-muted);
@@ -836,13 +845,17 @@ tbody td {
   overflow: hidden;
   margin-bottom: 12px;
 }
+
+/* Bar progress: transition width biasa tanpa blur */
 .rangeFill {
   height: 100%;
   border-radius: inherit;
+  transition: width 0.6s ease;
 }
 .rangeFill.normal { background: var(--dash-success); }
 .rangeFill.warning { background: var(--dash-warning); }
 .rangeFill.critical { background: var(--dash-danger); }
+
 .sensorTime {
   font-size: 11px;
   color: var(--dash-muted);

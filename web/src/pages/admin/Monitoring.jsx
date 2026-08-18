@@ -378,7 +378,7 @@ export default function Monitoring() {
               </div>
 
               <div className="sensorValue">
-                <strong>{Number(sensor.value).toLocaleString("id-ID")}</strong>
+                <strong key={sensor.value}>{Number(sensor.value).toLocaleString("id-ID")}</strong>
                 <span>{sensor.unit}</span>
               </div>
 
@@ -486,7 +486,7 @@ export default function Monitoring() {
           <h2>Catatan Teknis</h2>
           <ul className="summaryList">
             <li style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <FaSyncAlt /> <span>Data diperbarui otomatis setiap 10 detik.</span>
+              <FaSyncAlt /> <span>Data diperbarui otomatis setiap 2 detik.</span>
             </li>
             <li style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <FaWater /> <span>Nilai dibandingkan dengan batas normal dari database.</span>
