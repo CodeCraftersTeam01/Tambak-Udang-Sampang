@@ -17,30 +17,36 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [detailModal, setDetailModal] = useState(null);
   useEffect(() => {
-    Promise.all([
-      apiClient.get('/kolam'),
-      apiClient.get('/panen/statistik'),
-      apiClient.get('/pakan/statistik'),
-      apiClient.get('/produksi'),
-    ])
-      .then(([kolamRes, panenStat, pakanStat, produksiRes]) => {
-        const kolams = kolamRes.data.data || [];
-        const activeKolam = kolams.filter(k => k.status === 'aktif' || k.status == 1).length;
-        const produksis = produksiRes.data.data || [];
-        const avgUsia = produksis.length ? Math.round(produksis.reduce((sum, p) => sum + (p.usia_benur || 0), 0) / produksis.length) : 0;
-        
-        setStats({
-          kolam: activeKolam,
-          totalPanen: panenStat.data.data?.total_kg || 0,
-          totalPakan: pakanStat.data.data?.total_perminggu_kg || 0,
-          usiaBenur: avgUsia,
-          kolams,
-        });
-      })
-      .catch((err) => {
-        console.error("Dashboard Fetch Error:", err);
-      })
-      .finally(() => setLoading(false));
+    const fetchDashboardData = () => {
+      Promise.all([
+        apiClient.get('/kolam'),
+        apiClient.get('/panen/statistik'),
+        apiClient.get('/pakan/statistik'),
+        apiClient.get('/produksi'),
+      ])
+        .then(([kolamRes, panenStat, pakanStat, produksiRes]) => {
+          const kolams = kolamRes.data.data || [];
+          const activeKolam = kolams.filter(k => k.status === 'aktif' || k.status == 1).length;
+          const produksis = produksiRes.data.data || [];
+          const avgUsia = produksis.length ? Math.round(produksis.reduce((sum, p) => sum + (p.usia_benur || 0), 0) / produksis.length) : 0;
+          
+          setStats({
+            kolam: activeKolam,
+            totalPanen: panenStat.data.data?.total_kg || 0,
+            totalPakan: pakanStat.data.data?.total_perminggu_kg || 0,
+            usiaBenur: avgUsia,
+            kolams,
+          });
+        })
+        .catch((err) => {
+          console.error("Dashboard Fetch Error:", err);
+        })
+        .finally(() => setLoading(false));
+    };
+
+    fetchDashboardData();
+    const intervalId = setInterval(fetchDashboardData, 60000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const cards = [

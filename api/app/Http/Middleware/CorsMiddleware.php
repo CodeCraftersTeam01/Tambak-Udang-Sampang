@@ -8,7 +8,16 @@ class CorsMiddleware
 {
     public function handle($request, Closure $next)
     {
-        $allowedOrigin = '*';
+        $trustedOrigins = [
+            'http://localhost:5173',
+            'http://localhost:4173',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:4173',
+            'https://dashboard.tambaksudang.com',
+        ];
+
+        $origin = $request->header('Origin');
+        $allowedOrigin = in_array($origin, $trustedOrigins) ? $origin : $trustedOrigins[0];
 
         if ($request->getMethod() === 'OPTIONS') {
             return response('', 204)

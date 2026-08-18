@@ -23,7 +23,7 @@ class UpdateKolamRequest
     public function rules($id = null)
     {
         return [
-            'pemilik' => 'required|integer|exists:users,id',
+            'pemilik' => 'nullable|integer|exists:users,id',
             'nama_kolam' => 'required|string|max:255' . ($id ? '|unique:kolams,nama_kolam,' . $id : ''),
             'mqtt_id' => 'nullable|string|max:255',
             'lat' => 'nullable|numeric',
@@ -31,6 +31,8 @@ class UpdateKolamRequest
             'status' => 'required|in:0,1,2',
             'luas_kolam' => 'nullable|numeric',
             'detail_udang' => 'nullable|string',
+            'tanggal_tebar' => 'nullable|date',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ];
     }
 }

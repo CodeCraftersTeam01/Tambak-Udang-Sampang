@@ -53,7 +53,7 @@ class MqttManager {
       await _client!.connect();
     } catch (e) {
       _client!.disconnect();
-      return;
+      rethrow;
     }
 
     if (_client!.connectionStatus!.state == MqttConnectionState.connected) {
@@ -134,6 +134,8 @@ class MqttManager {
   void _onDisconnected() {
     print('MQTT Disconnected');
   }
+
+  bool get isConnected => _client != null && _client!.connectionStatus != null && _client!.connectionStatus!.state == MqttConnectionState.connected;
 
   void disconnect() {
     _client?.disconnect();

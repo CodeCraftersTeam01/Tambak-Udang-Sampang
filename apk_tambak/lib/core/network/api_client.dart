@@ -11,6 +11,9 @@ class ApiClient {
   ApiClient({required this.secureStorage, this.onUnauthorized}) : dio = Dio(
     BaseOptions(
       baseUrl: ApiEndpoints.baseUrl,
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+      sendTimeout: const Duration(seconds: 5),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

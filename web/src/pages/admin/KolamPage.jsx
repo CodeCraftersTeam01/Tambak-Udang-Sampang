@@ -3,33 +3,124 @@ import { FaPlus, FaWater, FaEdit, FaTrash, FaMapMarkerAlt, FaEye } from "react-i
 import DashboardLayout from "../../components/admin/DashboardLayout";
 import KolamDetailModal from "../../components/admin/KolamDetailModal";
 import apiClient from "../../core/network/apiClient";
+import { toast } from "react-hot-toast";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
-const emptyForm = { pemilik: "", nama_kolam: "", lat: "", long: "", status: "aktif", target_panen_kg: "" };
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
-function Toast({ message, type, onHide }) {
+function ChangeMapState({ center, onClick }) {
+  const map = useMapEvents({
+    click(e) {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
   useEffect(() => {
-    const t = setTimeout(onHide, 3000);
-    return () => clearTimeout(t);
-  }, [onHide]);
-  return <div className={`toast ${type}`}>{message}</div>;
+    if (center && center[0] && center[1]) {
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
+  return null;
 }
 
+const emptyForm = {
+  pemilik: "1",
+  nama_kolam: "",
+  lat: "",
+  long: "",
+  status: "aktif",
+  id_mqtt: "",
+  luas: "",
+  detail_udang: "",
+  kincir: "0",
+  relays: []
+};
+
 function KolamModal({ mode, data, onClose, onSaved }) {
-  const [form, setForm] = useState(data || emptyForm);
+  const [form, setForm] = useState(() => {
+    if (data) {
+      return {
+        ...emptyForm,
+        ...data,
+        id_mqtt: data.mqtt_id || "",
+        luas: data.luas_kolam || "",
+        kincir: data.relays ? data.relays.length.toString() : "0",
+        relays: data.relays ? data.relays.map((r) => r.nama_relay) : []
+      };
+    }
+    return emptyForm;
+  });
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (mode === "add" && !form.lat && !form.long) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setForm((prev) => ({
+            ...prev,
+            lat: pos.coords.latitude.toFixed(7),
+            long: pos.coords.longitude.toFixed(7)
+          }));
+        },
+        (err) => {
+          console.warn("Geolocation blocked/failed. Defaulting to Sampang.", err);
+          setForm((prev) => ({
+            ...prev,
+            lat: "-7.1884",
+            long: "113.2435"
+          }));
+        }
+      );
+    }
+  }, [mode]);
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleKincirChange = (e) => {
+    const value = e.target.value;
+    const numRelays = parseInt(value, 10) || 0;
+    const newRelays = Array.from({ length: numRelays }, (_, idx) => {
+      return form.relays[idx] || `Kincir ${idx + 1}`;
+    });
+    setForm((prev) => ({
+      ...prev,
+      kincir: value,
+      relays: newRelays
+    }));
+  };
+
+  const handleRelayNameChange = (index, value) => {
+    const updatedRelays = [...form.relays];
+    updatedRelays[index] = value;
+    setForm((prev) => ({
+      ...prev,
+      relays: updatedRelays
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, target_panen_kg: Number(form.target_panen_kg) };
+      const payload = { 
+        ...form, 
+        luas: Number(form.luas),
+        status: form.status
+      };
       if (mode === "edit") {
-        await apiClient.put(`/kolam/${form.id}`, payload);
+        await apiClient.put(`/ponds/${form.id}`, payload);
         onSaved("Kolam berhasil diperbarui!", "success");
       } else {
-        await apiClient.post(`/kolam`, payload);
+        await apiClient.post(`/ponds`, payload);
         onSaved("Kolam berhasil ditambahkan!", "success");
       }
       onClose();
@@ -42,26 +133,59 @@ function KolamModal({ mode, data, onClose, onSaved }) {
 
   return (
     <div className="dashModalOverlay" onClick={onClose}>
-      <div className="dashModal" onClick={(e) => e.stopPropagation()}>
+      <div className="dashModal max-h-[85vh] overflow-y-auto" style={{ maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
         <div className="dashModalHeader">
           <h3 className="dashModalTitle">{mode === "edit" ? "Edit Kolam" : "Tambah Kolam"}</h3>
           <button className="dashModalClose" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
+          <div className="dashFormGroup" style={{ marginBottom: "16px" }}>
+            <label>Nama Kolam</label>
+            <input name="nama_kolam" value={form.nama_kolam} onChange={handleChange} placeholder="Kolam A" required />
+          </div>
           <div className="dashFormRow">
             <div className="dashFormGroup">
-              <label>Nama Kolam</label>
-              <input name="nama_kolam" value={form.nama_kolam} onChange={handleChange} placeholder="Kolam A" required />
+              <label>ID MQTT</label>
+              <input name="id_mqtt" value={form.id_mqtt} onChange={handleChange} placeholder="Contoh: t01" required />
             </div>
             <div className="dashFormGroup">
-              <label>Target Panen (kg)</label>
-              <input name="target_panen_kg" type="number" step="0.01" value={form.target_panen_kg} onChange={handleChange} placeholder="0.00" required />
+              <label>Luas (m²)</label>
+              <input name="luas" type="number" step="0.1" value={form.luas} onChange={handleChange} placeholder="Contoh: 1000" required />
             </div>
           </div>
-          <div className="dashFormGroup">
-            <label>Pemilik</label>
-            <input name="pemilik" value={form.pemilik} onChange={handleChange} placeholder="Nama pemilik" required />
+          <div className="dashFormRow">
+            <div className="dashFormGroup">
+              <label>Detail Udang</label>
+              <input name="detail_udang" value={form.detail_udang} onChange={handleChange} placeholder="Contoh: Vannamei" required />
+            </div>
+            <div className="dashFormGroup">
+              <label>Jumlah Kincir (Relay)</label>
+              <input name="kincir" type="number" min="0" value={form.kincir} onChange={handleKincirChange} placeholder="Contoh: 4" required />
+            </div>
           </div>
+
+          {form.relays.length > 0 && (
+            <div className="dashFormGroup" style={{ marginTop: "12px", marginBottom: "16px" }}>
+              <label style={{ fontWeight: "bold", color: "#6cd3f7" }}>Nama-Nama Kincir (Relay)</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginTop: "8px" }}>
+                {form.relays.map((relayName, index) => (
+                  <div key={index} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <label style={{ fontSize: "12px", color: "#a0aec0" }}>Kincir {index + 1}</label>
+                    <input
+                      type="text"
+                      value={relayName}
+                      onChange={(e) => handleRelayNameChange(index, e.target.value)}
+                      placeholder={`Nama Kincir ${index + 1}`}
+                      required
+                      style={{ padding: "8px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", color: "#fff" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+
           <div className="dashFormRow">
             <div className="dashFormGroup">
               <label>Latitude</label>
@@ -72,6 +196,35 @@ function KolamModal({ mode, data, onClose, onSaved }) {
               <input name="long" value={form.long} onChange={handleChange} placeholder="112.456" required />
             </div>
           </div>
+
+          <div style={{ height: "200px", marginBottom: "16px", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <MapContainer
+              center={
+                form.lat && form.long
+                  ? [Number(form.lat), Number(form.long)]
+                  : [-7.1884, 113.2435]
+              }
+              zoom={13}
+              style={{ height: "100%", width: "100%", zIndex: 1 }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <ChangeMapState
+                center={
+                  form.lat && form.long
+                    ? [Number(form.lat), Number(form.long)]
+                    : null
+                }
+                onClick={(lat, lng) => setForm((prev) => ({ ...prev, lat: lat.toFixed(7), long: lng.toFixed(7) }))}
+              />
+              {form.lat && form.long && (
+                <Marker position={[Number(form.lat), Number(form.long)]} />
+              )}
+            </MapContainer>
+          </div>
+
           <div className="dashFormGroup">
             <label>Status</label>
             <select name="status" value={form.status} onChange={handleChange}>
@@ -116,10 +269,13 @@ export default function KolamPage() {
   const [modal, setModal] = useState(null); // { mode: "add"|"edit", data: {} }
   const [detailModal, setDetailModal] = useState(null); // stores kolam object
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [toast, setToast] = useState(null);
 
   const showToast = useCallback((message, type = "success") => {
-    setToast({ message, type });
+    if (type === "success") {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
   }, []);
 
   const fetchKolam = useCallback(async () => {
@@ -135,9 +291,9 @@ export default function KolamPage() {
   }, [showToast]);
 
   useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchKolam();
-    });
+    fetchKolam();
+    const intervalId = setInterval(fetchKolam, 60000);
+    return () => clearInterval(intervalId);
   }, [fetchKolam]);
 
   const handleDelete = async () => {
@@ -263,10 +419,6 @@ export default function KolamPage() {
         kolam={detailModal} 
         onClose={() => setDetailModal(null)} 
       />
-
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onHide={() => setToast(null)} />
-      )}
     </DashboardLayout>
   );
 }

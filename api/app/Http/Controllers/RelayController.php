@@ -40,4 +40,33 @@ class RelayController extends Controller
             'data' => $createdRelays,
         ], 201);
     }
+
+    /**
+     * Get relay statuses for a kolam.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function status(Request $request)
+    {
+        $pondId = $request->query('pond_id');
+        if (!$pondId) {
+            return response()->json(['message' => 'pond_id query parameter is required'], 400);
+        }
+
+        $relays = Relay::where('kolam_id', $pondId)->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $relays->map(function ($relay) {
+                return [
+                    'id' => $relay->id,
+                    'kolam_id' => (int) $relay->kolam_id,
+                    'nama_relay' => $relay->nama_relay,
+                    'status' => $relay->is_on ? 'ON' : 'OFF',
+                    'is_on' => (bool) $relay->is_on,
+                ];
+            }),
+        ]);
+    }
 }

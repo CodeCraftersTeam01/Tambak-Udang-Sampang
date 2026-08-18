@@ -47,6 +47,13 @@ dependencies:
   fl_chart: ^0.66.0
   image_picker: ^1.2.3
   http: ^1.6.0
+  webview_flutter: ^4.14.1
+  fluttertoast: ^9.0.0
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
+  geolocator: ^14.0.3
+  flutter_image_compress: ^2.5.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

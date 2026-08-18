@@ -56,7 +56,13 @@ class KolamRemoteDataSourceImpl implements KolamRemoteDataSource {
 
       payload.forEach((key, value) {
         if (key != 'image_file' && value != null) {
-          request.fields[key] = value.toString();
+          if (value is List) {
+            for (int i = 0; i < value.length; i++) {
+              request.fields['$key[$i]'] = value[i].toString();
+            }
+          } else {
+            request.fields[key] = value.toString();
+          }
         }
       });
 
@@ -118,7 +124,13 @@ class KolamRemoteDataSourceImpl implements KolamRemoteDataSource {
 
       payload.forEach((key, value) {
         if (key != 'image_file' && value != null) {
-          request.fields[key] = value.toString();
+          if (value is List) {
+            for (int i = 0; i < value.length; i++) {
+              request.fields['$key[$i]'] = value[i].toString();
+            }
+          } else {
+            request.fields[key] = value.toString();
+          }
         }
       });
 

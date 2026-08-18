@@ -28,8 +28,13 @@ class KolamResource extends JsonResource
             'long' => $this->long,
             'status' => $this->status,
             'status_label' => $this->status == '1' ? 'Aktif' : 'Tidak Aktif',
+            'status_siklus' => $this->status_siklus,
             'luas_kolam' => $this->luas_kolam,
             'detail_udang' => $this->detail_udang,
+            'tanggal_tebar' => $this->tanggal_tebar,
+            'doc' => $this->doc,
+            'image_path' => $this->image_path,
+            'image_url' => $this->image_path ? url($this->image_path) : null,
             'relays' => $this->whenLoaded('relays'),
             
             // English keys (for Master Spec compatibility)
@@ -40,7 +45,9 @@ class KolamResource extends JsonResource
             'longitude' => $this->long ? (float) $this->long : null,
             'area' => $this->luas_kolam ? (float) $this->luas_kolam : null,
             'status_english' => $this->status == '1' ? 'active' : 'inactive',
+            'status_siklus' => $this->status_siklus,
             'shrimp_detail' => $this->detail_udang,
+            'doc' => $this->doc,
             
             'created_at' => $this->created_at ? $this->created_at->toDateTimeString() : null,
             'updated_at' => $this->updated_at ? $this->updated_at->toDateTimeString() : null,

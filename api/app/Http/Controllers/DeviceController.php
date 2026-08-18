@@ -9,9 +9,22 @@ class DeviceController extends Controller
 {
     public function index()
     {
-        $devices = DB::table('devices')
-            ->leftJoin('kolams', 'kolams.id', '=', 'devices.pond_id')
-            ->select(
+        $user = auth()->user();
+        
+        $query = DB::table('devices')
+            ->leftJoin('kolams', 'kolams.id', '=', 'devices.pond_id');
+
+        if ($user) {
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+            $roleName = $user->role ? $user->role->name : '';
+            if ($roleName !== 'super_admin' && $roleName !== 'admin') {
+                $query->where('kolams.pemilik', $user->id);
+            }
+        }
+
+        $devices = $query->select(
                 'devices.id',
                 'devices.pond_id',
                 'kolams.nama_kolam as pond_name',
@@ -79,12 +92,40 @@ class DeviceController extends Controller
 
     public function show(string $id)
     {
-        $device = DB::table('devices')
-            ->leftJoin('kolams', 'kolams.id', '=', 'devices.pond_id')
-            ->select(
-                'devices.*',
+        $user = auth()->user();
+        
+        $query = DB::table('devices')
+            ->leftJoin('kolams', 'kolams.id', '=', 'devices.pond_id');
+
+        if ($user) {
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+            $roleName = $user->role ? $user->role->name : '';
+            if ($roleName !== 'super_admin' && $roleName !== 'admin') {
+                $query->where('kolams.pemilik', $user->id);
+            }
+        }
+
+        $device = $query->select(
+                'devices.id',
+                'devices.pond_id',
                 'kolams.nama_kolam as pond_name',
-                DB::raw('CONCAT("KOLAM-", kolams.id) as pond_code')
+                DB::raw('CONCAT("KOLAM-", kolams.id) as pond_code'),
+                'devices.device_code',
+                'devices.name',
+                'devices.device_type',
+                'devices.brand',
+                'devices.model',
+                'devices.serial_number',
+                'devices.mqtt_topic',
+                'devices.ip_address',
+                'devices.location_note',
+                'devices.status as status_raw',
+                'devices.last_seen_at',
+                'devices.installed_at',
+                'devices.created_at',
+                'devices.updated_at'
             )
             ->where('devices.id', $id)
             ->first();
@@ -104,7 +145,23 @@ class DeviceController extends Controller
 
     public function sensors(string $id)
     {
-        $device = DB::table('devices')->where('id', $id)->first();
+        $user = auth()->user();
+        
+        $deviceQuery = DB::table('devices')
+            ->leftJoin('kolams', 'kolams.id', '=', 'devices.pond_id')
+            ->where('devices.id', $id);
+
+        if ($user) {
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+            $roleName = $user->role ? $user->role->name : '';
+            if ($roleName !== 'super_admin' && $roleName !== 'admin') {
+                $deviceQuery->where('kolams.pemilik', $user->id);
+            }
+        }
+
+        $device = $deviceQuery->first();
 
         if (!$device) {
             return response()->json([
@@ -132,7 +189,7 @@ class DeviceController extends Controller
                 'sensors.created_at',
                 'sensors.updated_at'
             )
-            ->where('sensors.device_id', $id)
+            ->where('sensors.device_id', $device->id)
             ->orderBy('sensors.id')
             ->get();
 

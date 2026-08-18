@@ -14,6 +14,8 @@ import {
   FaMicrochip,
   FaBars,
   FaTimes,
+  FaSlidersH,
+  FaUser,
 } from "react-icons/fa";
 import "../../styles/dashboard.css";
 
@@ -25,7 +27,9 @@ const navItems = [
   { path: "/admin/produksi",   label: "Produksi",   icon: <FaSeedling /> },
   { path: "/admin/panen",      label: "Panen",      icon: <FaFish /> },
   { path: "/admin/pakan",      label: "Pakan",      icon: <FaBoxes /> },
+  { path: "/admin/thresholds", label: "Batas Sensor", icon: <FaSlidersH /> },
   { path: "/admin/users",      label: "Users",      icon: <FaUsers /> },
+  { path: "/admin/profile",    label: "Profil Saya", icon: <FaUser /> },
 ];
 
 export default function DashboardLayout({ children, title }) {
@@ -40,7 +44,7 @@ export default function DashboardLayout({ children, title }) {
       console.error("Logout error", e);
     } finally {
       localStorage.removeItem("token");
-      navigate("/");
+      navigate("/login");
     }
   };
 

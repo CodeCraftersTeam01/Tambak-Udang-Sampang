@@ -28,7 +28,17 @@ class KolamBloc extends Bloc<KolamEvent, KolamState> {
   Future<void> _onAddKolam(AddKolam event, Emitter<KolamState> emit) async {
     emit(KolamLoading());
     try {
-      final kolam = await repository.addKolam(event.payload);
+      final Map<String, dynamic> mergedPayload = Map<String, dynamic>.from(event.payload);
+      if (mergedPayload.containsKey('mqtt_id')) {
+        mergedPayload['id_mqtt'] = mergedPayload['mqtt_id'];
+      }
+      if (mergedPayload.containsKey('luas_kolam')) {
+        mergedPayload['luas'] = mergedPayload['luas_kolam'];
+      }
+      if (!mergedPayload.containsKey('relays')) {
+        mergedPayload['relays'] = <String>[];
+      }
+      final kolam = await repository.addKolam(mergedPayload);
       emit(KolamAddSuccess(kolam: kolam));
       add(FetchKolams());
     } catch (e) {
@@ -39,10 +49,15 @@ class KolamBloc extends Bloc<KolamEvent, KolamState> {
   Future<void> _onAddKolamWithRelays(AddKolamWithRelays event, Emitter<KolamState> emit) async {
     emit(KolamLoading());
     try {
-      final kolam = await repository.addKolam(event.kolamPayload);
-      if (event.relayNames.isNotEmpty) {
-        await repository.addRelaysBatch(kolam.id, event.relayNames);
+      final Map<String, dynamic> mergedPayload = Map<String, dynamic>.from(event.kolamPayload);
+      mergedPayload['relays'] = event.relayNames;
+      if (mergedPayload.containsKey('mqtt_id')) {
+        mergedPayload['id_mqtt'] = mergedPayload['mqtt_id'];
       }
+      if (mergedPayload.containsKey('luas_kolam')) {
+        mergedPayload['luas'] = mergedPayload['luas_kolam'];
+      }
+      final kolam = await repository.addKolam(mergedPayload);
       emit(KolamAddSuccess(kolam: kolam));
       add(FetchKolams());
     } catch (e) {
@@ -53,7 +68,14 @@ class KolamBloc extends Bloc<KolamEvent, KolamState> {
   Future<void> _onUpdateKolam(UpdateKolam event, Emitter<KolamState> emit) async {
     emit(KolamLoading());
     try {
-      await repository.updateKolam(event.id, event.payload);
+      final Map<String, dynamic> mergedPayload = Map<String, dynamic>.from(event.payload);
+      if (mergedPayload.containsKey('mqtt_id')) {
+        mergedPayload['id_mqtt'] = mergedPayload['mqtt_id'];
+      }
+      if (mergedPayload.containsKey('luas_kolam')) {
+        mergedPayload['luas'] = mergedPayload['luas_kolam'];
+      }
+      await repository.updateKolam(event.id, mergedPayload);
       emit(KolamUpdateSuccess());
       add(FetchKolams());
     } catch (e) {
@@ -64,7 +86,14 @@ class KolamBloc extends Bloc<KolamEvent, KolamState> {
   Future<void> _onUpdateKolamWithRelays(UpdateKolamWithRelays event, Emitter<KolamState> emit) async {
     emit(KolamLoading());
     try {
-      await repository.updateKolam(event.id, event.kolamPayload);
+      final Map<String, dynamic> mergedPayload = Map<String, dynamic>.from(event.kolamPayload);
+      if (mergedPayload.containsKey('mqtt_id')) {
+        mergedPayload['id_mqtt'] = mergedPayload['mqtt_id'];
+      }
+      if (mergedPayload.containsKey('luas_kolam')) {
+        mergedPayload['luas'] = mergedPayload['luas_kolam'];
+      }
+      await repository.updateKolam(event.id, mergedPayload);
       if (event.relayNames.isNotEmpty) {
         await repository.addRelaysBatch(event.id, event.relayNames);
       }

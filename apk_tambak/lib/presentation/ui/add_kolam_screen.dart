@@ -1,9 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import '../../domain/entities/kolam_entity.dart';
+import '../../core/constants/app_colors.dart';
 import '../widgets/liquid_glass_card.dart';
 import 'add_relay_screen.dart';
+import 'location_picker_screen.dart';
 
 class AddKolamScreen extends StatefulWidget {
   final KolamEntity? kolamToEdit;
@@ -25,13 +29,43 @@ class _AddKolamScreenState extends State<AddKolamScreen> {
   bool _isLoading = false;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+  
+  String _lat = "-7.1884";
+  String _long = "113.2435";
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
+      final String originalPath = image.path;
+      final int lastDot = originalPath.lastIndexOf('.');
+      final String targetPath = lastDot != -1
+          ? '${originalPath.substring(0, lastDot)}_compressed.jpg'
+          : '${originalPath}_compressed.jpg';
+
+      try {
+        final XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
+          originalPath,
+          targetPath,
+          quality: 70,
+          minWidth: 800,
+          minHeight: 800,
+        );
+
+        if (compressedFile != null) {
+          setState(() {
+            _selectedImage = File(compressedFile.path);
+          });
+        } else {
+          setState(() {
+            _selectedImage = File(originalPath);
+          });
+        }
+      } catch (e) {
+        debugPrint('Compression error: $e');
+        setState(() {
+          _selectedImage = File(originalPath);
+        });
+      }
     }
   }
 
@@ -51,6 +85,8 @@ class _AddKolamScreenState extends State<AddKolamScreen> {
       _detailController.text = widget.kolamToEdit!.detailUdang;
       _kincirController.text = widget.kolamToEdit!.relays.length.toString();
       _status = widget.kolamToEdit!.status;
+      _lat = widget.kolamToEdit!.lat ?? "-7.1884";
+      _long = widget.kolamToEdit!.long ?? "113.2435";
     }
   }
 
@@ -70,8 +106,8 @@ class _AddKolamScreenState extends State<AddKolamScreen> {
         "pemilik": 1, 
         "nama_kolam": _namaController.text,
         "mqtt_id": _mqttController.text,
-        "lat": widget.kolamToEdit?.lat ?? "-7.2",
-        "long": widget.kolamToEdit?.long ?? "112.7",
+        "lat": _lat,
+        "long": _long,
         "status": _status,
         "luas_kolam": double.tryParse(_luasController.text) ?? 0.0,
         "detail_udang": _detailController.text,
@@ -205,6 +241,64 @@ class _AddKolamScreenState extends State<AddKolamScreen> {
                           ),
                           const SizedBox(height: 16),
 
+                          _buildInputLabel('Lokasi Koordinat Kolam'),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF131B2E),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF1E293B)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Lat: $_lat',
+                                        style: const TextStyle(color: Color(0xFFDAE2FD), fontFamily: 'monospace', fontSize: 13),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Long: $_long',
+                                        style: const TextStyle(color: Color(0xFFDAE2FD), fontFamily: 'monospace', fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => LocationPickerScreen(
+                                          initialLat: double.tryParse(_lat) ?? -7.1884,
+                                          initialLong: double.tryParse(_long) ?? 113.2435,
+                                        ),
+                                      ),
+                                    );
+                                    if (result != null && result is LatLng) {
+                                      setState(() {
+                                        _lat = result.latitude.toStringAsFixed(7);
+                                        _long = result.longitude.toStringAsFixed(7);
+                                      });
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  ),
+                                  icon: const Icon(Icons.map, size: 18, color: Colors.white),
+                                  label: const Text('Pilih di Peta', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
                           _buildInputLabel('Jumlah Kincir (Relay)'),
                           TextFormField(
                             controller: _kincirController,
@@ -267,13 +361,13 @@ class _AddKolamScreenState extends State<AddKolamScreen> {
           child: Container(
             height: 180,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: const Color(0xFF131B2E),
               borderRadius: BorderRadius.circular(16),
             ),
             child: _selectedImage == null
                 ? CustomPaint(
                     painter: DashedBorderPainter(
-                      color: Colors.white.withOpacity(0.15),
+                      color: const Color(0xFF1E293B),
                       gap: 6.0,
                     ),
                     child: Center(
@@ -352,22 +446,6 @@ class _AddKolamScreenState extends State<AddKolamScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white30),
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.05),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6CD3F7)),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }

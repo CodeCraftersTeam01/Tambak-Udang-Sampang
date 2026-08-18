@@ -11,11 +11,14 @@ class KolamModel extends KolamEntity {
     required super.long,
     required super.status,
     required super.statusLabel,
+    super.statusSiklus = 'persiapan',
     required super.luas,
     required super.targetPanen,
     required super.detailUdang,
     required super.relays,
     super.imageUrl,
+    super.tanggalTebar,
+    super.doc,
   });
 
   factory KolamModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +35,7 @@ class KolamModel extends KolamEntity {
       long: json['longitude']?.toString() ?? json['long']?.toString() ?? '',
       status: json['status'] is int ? json['status'] : int.tryParse(json['status']?.toString() ?? '0') ?? 0,
       statusLabel: json['status_label']?.toString() ?? (json['status_english'] == 'active' ? 'Aktif' : 'Tidak Aktif'),
+      statusSiklus: json['status_siklus']?.toString() ?? 'persiapan',
       luas: json['area'] != null 
           ? double.tryParse(json['area'].toString()) ?? 0.0 
           : (json['luas_kolam'] != null 
@@ -43,6 +47,8 @@ class KolamModel extends KolamEntity {
           ? (json['relays'] as List).map((i) => RelayModel.fromJson(i)).toList() 
           : const [],
       imageUrl: json['image_url']?.toString() ?? json['image']?.toString(),
+      tanggalTebar: json['tanggal_tebar']?.toString(),
+      doc: json['doc'] is int ? json['doc'] : (json['doc'] != null ? int.tryParse(json['doc'].toString()) : null),
     );
   }
 }

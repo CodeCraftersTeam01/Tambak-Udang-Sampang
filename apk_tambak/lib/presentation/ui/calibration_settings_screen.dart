@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/toast_helper.dart';
 import '../../main.dart';
 
 class CalibrationSettingsScreen extends StatefulWidget {
@@ -69,12 +70,7 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
 
   Future<void> _submit() async {
     if (_deviceId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada perangkat sensor yang terhubung ke kolam ini.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ToastHelper.showError('Tidak ada perangkat sensor yang terhubung ke kolam ini.');
       return;
     }
 
@@ -97,12 +93,7 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
 
       if (mounted) {
         if (response.data['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kalibrasi berhasil diperbarui dan dikirim ke perangkat'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          ToastHelper.showSuccess('Kalibrasi berhasil diperbarui dan dikirim ke perangkat');
           Navigator.pop(context);
         } else {
           throw Exception(response.data['message'] ?? 'Gagal memperbarui kalibrasi.');
@@ -110,12 +101,7 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ToastHelper.showError('Error: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -142,16 +128,13 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+          decoration: const InputDecoration(),
           validator: (value) {
             if (value == null || value.isEmpty) return 'Harus diisi';
             if (double.tryParse(value) == null) return 'Harus berupa angka';
@@ -166,19 +149,9 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Kalibrasi Parameter Sensor',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
+        title: const Text('Kalibrasi Parameter Sensor'),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -214,15 +187,16 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
                       children: [
                         Card(
                           elevation: 0,
-                          color: AppColors.primary.withValues(alpha: 0.05),
+                          color: const Color(0xFF131B2E),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: Color(0xFF1E293B)),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [
-                                const Icon(Icons.settings_input_component, color: AppColors.primary),
+                                const Icon(Icons.settings_input_component, color: Color(0xFF6CD3F7)),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
@@ -231,14 +205,13 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
                                       Text(
                                         'Perangkat: $_deviceName',
                                         style: const TextStyle(
-                                          color: AppColors.textPrimary,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         'Kolam: ${widget.pondName}',
-                                        style: const TextStyle(color: AppColors.textSecondary),
+                                        style: const TextStyle(color: Color(0xFF94A3B8)),
                                       ),
                                     ],
                                   ),
@@ -258,21 +231,7 @@ class _CalibrationSettingsScreenState extends State<CalibrationSettingsScreen> {
                         const SizedBox(height: 32),
                         ElevatedButton(
                           onPressed: _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Kirim Kalibrasi ke Perangkat',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: const Text('Kirim Kalibrasi ke Perangkat'),
                         ),
                       ],
                     ),

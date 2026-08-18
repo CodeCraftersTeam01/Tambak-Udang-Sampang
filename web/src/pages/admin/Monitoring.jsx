@@ -179,6 +179,7 @@ export default function Monitoring() {
   const [ponds, setPonds] = useState(fallbackPonds);
   const [selectedPondId, setSelectedPondId] = useState(1);
   const [sensors, setSensors] = useState(fallbackSensors);
+  const [relays, setRelays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [apiMode, setApiMode] = useState("sample");
   const [error, setError] = useState("");
@@ -237,6 +238,20 @@ export default function Monitoring() {
     }
   }, [selectedPondId]);
 
+  const loadRelays = useCallback(async (pondId = selectedPondId) => {
+    try {
+      const response = await apiClient.get(`/relay/status?pond_id=${pondId}`);
+      const data = response.data?.data || response.data;
+      if (Array.isArray(data)) {
+        setRelays(data);
+      } else {
+        setRelays([]);
+      }
+    } catch {
+      setRelays([]);
+    }
+  }, [selectedPondId]);
+
   useEffect(() => {
     Promise.resolve().then(() => {
       loadPonds();
@@ -246,14 +261,16 @@ export default function Monitoring() {
   useEffect(() => {
     Promise.resolve().then(() => {
       loadLatest(selectedPondId);
+      loadRelays(selectedPondId);
     });
 
     const intervalId = setInterval(() => {
       loadLatest(selectedPondId);
-    }, 2000); // refresh every 2 seconds
+      loadRelays(selectedPondId);
+    }, 10000); // refresh every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [selectedPondId, loadLatest]);
+  }, [selectedPondId, loadLatest, loadRelays]);
 
   return (
     <DashboardLayout title="Monitoring Sensor Real-Time">
@@ -289,7 +306,10 @@ export default function Monitoring() {
 
           <button
             className="btnPrimary"
-            onClick={() => loadLatest(selectedPondId)}
+            onClick={() => {
+              loadLatest(selectedPondId);
+              loadRelays(selectedPondId);
+            }}
             disabled={loading}
           >
             <FaSyncAlt className={loading ? "spinIcon" : ""} />
@@ -407,6 +427,58 @@ export default function Monitoring() {
                 );
               })}
             </ul>
+          )}
+        </div>
+
+        <div className="adminPanel">
+          <h2>Status Kincir Air (Relay)</h2>
+          {relays.length === 0 ? (
+            <div className="emptyState" style={{ padding: "20px 0", textAlign: "center", color: "#6e6e80" }}>
+              <p>Tidak ada data relay kincir air untuk kolam ini.</p>
+            </div>
+          ) : (
+            <div className="relayListGrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "12px", marginTop: "12px" }}>
+              {relays.map((relay) => (
+                <div
+                  key={relay.id}
+                  style={{
+                    padding: "12px",
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "10px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span style={{ fontWeight: "600", fontSize: "13px", color: "#6e6e80", textAlign: "center" }}>{relay.nama_relay}</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      background: relay.is_on ? "rgba(48, 209, 88, 0.15)" : "rgba(110, 110, 128, 0.15)",
+                      color: relay.is_on ? "#30d158" : "#6e6e80",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        background: relay.is_on ? "#30d158" : "#6e6e80",
+                      }}
+                    />
+                    {relay.status}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
