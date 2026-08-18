@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/utils/toast_helper.dart';
 import '../bloc/kolam_bloc.dart';
 import '../bloc/kolam_event.dart';
 import '../bloc/kolam_state.dart';
@@ -74,7 +74,6 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -87,17 +86,16 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
+                        color: const Color(0xFF6CD3F7).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.arrow_back, color: AppColors.primary),
+                      child: const Icon(Icons.arrow_back, color: Color(0xFF6CD3F7)),
                     ),
                   ),
                   const SizedBox(width: 16),
                   const Text(
                     'Konfigurasi Relay',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -113,14 +111,10 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
                   } else {
                     setState(() => _isLoading = false);
                     if (state is KolamAddSuccess) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Kolam & Relay berhasil ditambahkan')),
-                      );
+                      ToastHelper.showSuccess('Kolam & Relay berhasil ditambahkan');
                       Navigator.pop(context, state.kolam);
                     } else if (state is KolamUpdateSuccess) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Kolam & Relay berhasil diupdate')),
-                      );
+                      ToastHelper.showSuccess('Kolam & Relay berhasil diupdate');
                       // Provide an updated kolam locally for instant UI reflection if state.kolam not provided
                       Navigator.pop(context, state.kolam ?? KolamModel(
                         id: widget.kolamToEdit!.id,
@@ -137,9 +131,7 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
                         relays: _controllers.map((c) => RelayModel(id: 0, kolamId: widget.kolamToEdit!.id, namaRelay: c.text)).toList(),
                       ));
                     } else if (state is KolamError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
-                      );
+                      ToastHelper.showError(state.message);
                     }
                   }
                 },
@@ -173,15 +165,9 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          color: Theme.of(context).cardTheme.color,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF1E293B)),
         ),
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -197,20 +183,13 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Text(
                         'Nama Relay ${index + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     TextFormField(
                       controller: _controllers[index],
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Contoh: Kincir Ujung',
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                       validator: (value) => value!.isEmpty ? 'Wajib diisi' : null,
                     ),
@@ -226,29 +205,22 @@ class _AddRelayScreenState extends State<AddRelayScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.secondary],
+                      colors: [Color(0xFF6CD3F7), Color(0xFF2E3192)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Color(0xFF0B1326), strokeWidth: 2),
                         )
                       : const Text(
                           'Simpan',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Color(0xFF0B1326),
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),

@@ -17,9 +17,26 @@ class Kolam extends Model
         'lat',
         'long',
         'status',
+        'status_siklus',
         'luas_kolam',
         'detail_udang',
+        'tanggal_tebar',
+        'image_path',
     ];
+
+    public function getDocAttribute()
+    {
+        if ($this->status_siklus !== 'aktif') {
+            return null;
+        }
+        if (!$this->tanggal_tebar) {
+            return null;
+        }
+        $now = \Carbon\Carbon::now()->startOfDay();
+        $tebar = \Carbon\Carbon::parse($this->tanggal_tebar)->startOfDay();
+        $diff = $tebar->diffInDays($now, false);
+        return $diff < 0 ? 0 : (int) $diff;
+    }
 
     public function relays()
     {

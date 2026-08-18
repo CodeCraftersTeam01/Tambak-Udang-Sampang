@@ -15,6 +15,7 @@ $router->group(['middleware' => 'throttle:5,1'], function () use ($router) {
 $router->group(['middleware' => ['auth', 'throttle:60,1']], function () use ($router) {
     $router->get('ponds', 'KolamController@index');
     $router->get('monitoring/latest', 'MonitoringController@latest');
+    $router->get('relay/status', 'RelayController@status');
     $router->get('devices', 'DeviceController@index');
     $router->get('farm-management/summary', 'KolamController@farmSummary');
     $router->get('production-management/summary', 'ProduksiController@productionSummary');
@@ -46,6 +47,12 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
     $router->post('auth/logout', 'AuthController@logout');
     $router->get('auth/me', 'AuthController@me');
 
+    // Profile Management
+    $router->get('profile',                 'ProfileController@getProfile');
+    $router->put('profile',                 'ProfileController@updateProfile');
+    $router->put('profile/change-password', 'ProfileController@changePassword');
+    $router->post('profile/toggle-alerts',   'ProfileController@toggleAlerts');
+
     // Kolam (Pond) CRUD
     $router->get('kolam',          'KolamController@index');
     $router->post('kolam',         'KolamController@store');
@@ -63,6 +70,7 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
 
     // Relay routes
     $router->post('relay',         'RelayController@storeBatch');
+    $router->get('relay/status',   'RelayController@status');
 
     // Produksi (Production Cycle) CRUD
     $router->get('produksi/log/{kolam_id}', 'ProduksiLogController@index');
@@ -101,6 +109,9 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
     $router->get('laporan/{kolam_id}', 'LaporanController@show');
     $router->get('devices/{id}/calibration', 'DeviceController@calibration');
     $router->put('devices/{id}/calibration', 'DeviceController@updateCalibration');
+    $router->get('devices',                  'DeviceController@index');
+    $router->get('devices/{id}',             'DeviceController@show');
+    $router->get('devices/{id}/sensors',     'DeviceController@sensors');
 
     // Monitoring
     $router->get('monitoring/latest', 'MonitoringController@latest');
@@ -109,8 +120,17 @@ $router->group(['prefix' => 'api', 'middleware' => ['auth', 'throttle:60,1']], f
     // Farm Management summary under /api
     $router->get('farm-management/summary', 'KolamController@farmSummary');
 
-    // Thresholds & Calibration Configuration
-    $router->post('thresholds/update', 'ThresholdController@update');
+    // Threshold CRUD
+    $router->get('thresholds', 'ThresholdController@index');
+    $router->post('thresholds', 'ThresholdController@store');
+    $router->put('thresholds/{id}', 'ThresholdController@update');
+    $router->delete('thresholds/{id}', 'ThresholdController@destroy');
+
+    // Cycle State Machine
+    $router->post('ponds/{id}/start-cycle', 'KolamController@startCycle');
+    $router->post('ponds/{id}/end-cycle',   'KolamController@endCycle');
+    $router->post('kolam/{id}/start-cycle', 'KolamController@startCycle');
+    $router->post('kolam/{id}/end-cycle',   'KolamController@endCycle');
     $router->post('calibration/update', 'CalibrationController@update');
 
     // User CRUD

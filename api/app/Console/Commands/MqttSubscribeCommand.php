@@ -162,7 +162,23 @@ class MqttSubscribeCommand extends Command
 
             // Status message
             if ($sensorKey === 'status') {
-                $this->info("Device {$deviceCode} is " . $message);
+                $statusVal = trim(strtolower($message));
+                $this->info("Device {$deviceCode} is " . $statusVal);
+                if ($statusVal === 'offline' || $statusVal === '0') {
+                    // Device went offline! Set all its relays to OFF in the DB.
+                    $kolam = DB::table('kolams')
+                        ->where('mqtt_id', $deviceCode)
+                        ->first();
+                    if ($kolam) {
+                        DB::table('relays')
+                            ->where('kolam_id', $kolam->id)
+                            ->update([
+                                'is_on' => 0,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]);
+                        $this->info("Set all relays for Kolam ID {$kolam->id} to OFF (Device Offline).");
+                    }
+                }
                 continue;
             }
 
@@ -221,9 +237,33 @@ class MqttSubscribeCommand extends Command
             }
 
             // Aerator/Relay sync
-            if (strpos($sensorKey, 'aerator') === 0) {
+            if (strpos($sensorKey, 'aerator_') === 0) {
                 $subSegment = $segments[3] ?? null;
                 $this->info("Aerator Event - Device: {$deviceCode}, Aerator: {$sensorKey}, Type: {$subSegment}, Value: {$message}");
+                if ($subSegment === 'status') {
+                    $index = (int) substr($sensorKey, 8); // e.g. "aerator_1" -> 1
+                    $statusValue = trim(strtoupper($message)); // ON or OFF
+                    // Find the pond associated with this device
+                    $kolam = DB::table('kolams')
+                        ->where('mqtt_id', $deviceCode)
+                        ->first();
+                    if ($kolam) {
+                        // Find the N-th relay of this kolam
+                        $relays = DB::table('relays')
+                            ->where('kolam_id', $kolam->id)
+                            ->orderBy('id', 'asc')
+                            ->get();
+                        if (isset($relays[$index - 1])) {
+                            DB::table('relays')
+                                ->where('id', $relays[$index - 1]->id)
+                                ->update([
+                                    'is_on' => ($statusValue === 'ON' ? 1 : 0),
+                                    'updated_at' => date('Y-m-d H:i:s')
+                                ]);
+                            $this->info("Synced Relay index {$index} for Kolam ID {$kolam->id} in database to " . $statusValue);
+                        }
+                    }
+                }
                 continue;
             }
 
@@ -276,20 +316,36 @@ class MqttSubscribeCommand extends Command
                 try {
                     $doubleValue = (float) $value;
                     $pondId = $device->pond_id;
-                    $sensorTypeId = $sensor->sensor_type_id;
 
-                    // Lightly cache the threshold database query for 30 seconds
-                    $threshold = Cache::remember(
-                        "sensor_threshold_{$pondId}_{$sensorTypeId}",
-                        30,
-                        function () use ($pondId, $sensorTypeId) {
-                            return DB::table('sensor_thresholds')
-                                ->where('pond_id', $pondId)
-                                ->where('sensor_type_id', $sensorTypeId)
-                                ->where('is_active', 1)
-                                ->first();
-                        }
-                    );
+                    // Fetch pond cycle details
+                    $pond = DB::table('kolams')->where('id', $pondId)->first();
+                    if (!$pond || $pond->status_siklus !== 'aktif') {
+                        $this->info("Pond cycle is inactive for pond {$pondId}. Skipping threshold check.");
+                        continue;
+                    }
+
+                    // Calculate DOC
+                    $doc = 0;
+                    if ($pond->tanggal_tebar) {
+                        $now = \Carbon\Carbon::now()->startOfDay();
+                        $tebar = \Carbon\Carbon::parse($pond->tanggal_tebar)->startOfDay();
+                        $diff = $tebar->diffInDays($now, false);
+                        $doc = $diff < 0 ? 0 : (int) $diff;
+                    }
+
+                    // Query active threshold for this DOC phase
+                    // Check doc_start <= current_doc AND (doc_end >= current_doc OR doc_end IS NULL)
+                    // Order by doc_start DESC to find the closest phase boundary
+                    $threshold = DB::table('sensor_thresholds')
+                        ->where('pond_id', $pondId)
+                        ->where('sensor_type', $sensorTypeCode)
+                        ->where('doc_start', '<=', $doc)
+                        ->where(function ($q) use ($doc) {
+                            $q->where('doc_end', '>=', $doc)
+                              ->orWhereNull('doc_end');
+                        })
+                        ->orderBy('doc_start', 'desc')
+                        ->first();
 
                     $shouldWarn = false;
                     $breachedLimit = '';
@@ -304,18 +360,8 @@ class MqttSubscribeCommand extends Command
                             $maxVal = (float) $threshold->max_value;
                         }
                     } else {
-                        // Log warning and fallback to default type normal min/max
-                        Log::warning("Thresholds are missing for pond {$pondId} and sensor type {$sensorTypeCode}. Using fallback values from sensor_types table.");
-                        
-                        $sensorTypeObj = DB::table('sensor_types')->where('code', $sensorTypeCode)->first();
-                        if ($sensorTypeObj) {
-                            if ($sensorTypeObj->normal_min !== null) {
-                                $minVal = (float) $sensorTypeObj->normal_min;
-                            }
-                            if ($sensorTypeObj->normal_max !== null) {
-                                $maxVal = (float) $sensorTypeObj->normal_max;
-                            }
-                        }
+                        // Safe Fallback: gaps in defined phases will gracefully skip Firebase alerts
+                        $this->info("No custom threshold matches DOC {$doc} for pond {$pondId} sensor {$sensorTypeCode}. Skipping alert.");
                     }
 
                     // Strict Condition Check
@@ -327,8 +373,18 @@ class MqttSubscribeCommand extends Command
                         $breachedLimit = 'TERLALU TINGGI';
                     }
 
+                    // Check if owner has alerts enabled
+                    $pond = DB::table('kolams')->where('id', $pondId)->first();
+                    $alertsEnabled = true;
+                    if ($pond) {
+                        $owner = DB::table('users')->where('id', $pond->pemilik)->first();
+                        if ($owner) {
+                            $alertsEnabled = (bool) ($owner->alerts_enabled ?? true);
+                        }
+                    }
+
                     // Cooldown Cache Check (60 seconds)
-                    if ($shouldWarn) {
+                    if ($shouldWarn && $alertsEnabled) {
                         $cacheKey = "mqtt_cooldown_{$pondId}_{$sensorTypeCode}";
                         if (!Cache::has($cacheKey)) {
                             $sensorName = $sensor->name ?? ucfirst($sensorKey);

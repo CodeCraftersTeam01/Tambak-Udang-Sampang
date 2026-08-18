@@ -13,12 +13,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/kolam_bloc.dart';
 import '../bloc/kolam_event.dart';
 import '../bloc/kolam_state.dart';
+import '../../data/models/kolam_model.dart';
 import 'add_kolam_screen.dart';
-import 'log_input_screen.dart';
 import 'produksi_chart_screen.dart';
 import 'threshold_settings_screen.dart';
 import 'calibration_settings_screen.dart';
 import '../widgets/liquid_glass_card.dart';
+import '../../core/config/api_config.dart';
+import '../../core/utils/error_handler.dart';
+import '../../core/utils/toast_helper.dart';
+import 'report_webview_screen.dart';
 
 class PondDetailScreen extends StatefulWidget {
   final KolamEntity kolam;
@@ -37,8 +41,162 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
   final List<double> _tdsHistory = [];
   StreamSubscription<Map<String, dynamic>>? _sensorDataSubscription;
   StateSetter? _modalStateSetter;
+  Timer? _pollingTimer;
+
+  // Closed-loop relay feedback variables
+  final Map<String, bool> _pendingRelays = {};
+  final Map<String, Timer> _relayTimers = {};
+
+  void _onRelayStatusesChanged() {
+    if (!mounted) return;
+    final currentStatuses = globalMqttManager.relayStatuses.value;
+    setState(() {
+      _pendingRelays.removeWhere((key, targetValue) {
+        if (currentStatuses[key] == targetValue) {
+          _relayTimers[key]?.cancel();
+          _relayTimers.remove(key);
+          return true; // remove from pending
+        }
+        return false;
+      });
+    });
+  }
+
+  Future<void> _fetchPondDetail() async {
+    try {
+      final response = await globalApiClient.dio.get('/api/ponds/${_currentKolam.id}');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseMap = response.data;
+        final updatedKolam = KolamModel.fromJson(responseMap['data']);
+        setState(() {
+          _currentKolam = updatedKolam;
+          if (_currentKolam.mqttId != null && _currentKolam.mqttId!.isNotEmpty) {
+            globalMqttManager.connect(_currentKolam.mqttId!);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching pond detail: $e');
+    }
+  }
 
 
+
+  Future<void> _startBudidayaCycle() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'PILIH TANGGAL TEBAR',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return;
+
+    final dateStr = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+    );
+
+    try {
+      final response = await globalApiClient.dio.post('/api/ponds/${_currentKolam.id}/start-cycle', data: {
+        'tanggal_tebar': dateStr,
+      });
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading spinner
+        if (response.data['success'] == true) {
+          ToastHelper.showSuccess('Siklus budidaya berhasil dimulai!');
+          context.read<KolamBloc>().add(FetchKolams());
+          Navigator.pop(context); // Close detail page to trigger list refresh
+        } else {
+          throw Exception(response.data['message'] ?? 'Gagal memulai siklus');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading spinner
+        ToastHelper.showError('Error: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _endBudidayaCycle() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF131B2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF1E293B)),
+        ),
+        title: const Text('Konfirmasi Akhiri Siklus', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        content: const Text(
+          'Apakah Anda yakin ingin mengakhiri siklus budidaya kolam ini? Semua perhitungan DOC akan dihentikan.',
+          style: TextStyle(color: Color(0xFFDAE2FD)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal', style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            child: const Text('Akhiri'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+    );
+
+    try {
+      final response = await globalApiClient.dio.post('/api/ponds/${_currentKolam.id}/end-cycle');
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading spinner
+        if (response.data['success'] == true) {
+          ToastHelper.showSuccess('Siklus budidaya berhasil diakhiri!');
+          context.read<KolamBloc>().add(FetchKolams());
+          Navigator.pop(context); // Close detail page to trigger list refresh
+        } else {
+          throw Exception(response.data['message'] ?? 'Gagal mengakhiri siklus');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading spinner
+        ToastHelper.showError('Error: ${e.toString()}');
+      }
+    }
+  }
 
   Future<void> _hydrateInitialData() async {
     try {
@@ -97,6 +255,22 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
       }
     } catch (e) {
       debugPrint('Error hydrating initial monitoring data: $e');
+      if (mounted) {
+        ErrorHandler.handleError(context, e);
+      }
+    }
+  }
+
+  Future<void> _connectMqtt() async {
+    try {
+      if (_currentKolam.mqttId != null && _currentKolam.mqttId!.isNotEmpty) {
+        await globalMqttManager.connect(_currentKolam.mqttId!);
+      }
+    } catch (e) {
+      debugPrint('Error connecting to MQTT: $e');
+      if (mounted) {
+        ErrorHandler.showNetworkErrorSnackbar(context);
+      }
     }
   }
 
@@ -104,10 +278,23 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
   void initState() {
     super.initState();
     _currentKolam = widget.kolam;
-    _hydrateInitialData();
-    if (_currentKolam.mqttId != null && _currentKolam.mqttId!.isNotEmpty) {
-      globalMqttManager.connect(_currentKolam.mqttId!);
+
+    // Hydrate initial relay statuses from database values
+    final initialStatuses = <String, bool>{};
+    for (int i = 0; i < _currentKolam.relays.length; i++) {
+      initialStatuses['${i + 1}'] = _currentKolam.relays[i].isOn;
     }
+    globalMqttManager.relayStatuses.value = initialStatuses;
+    globalMqttManager.relayStatuses.addListener(_onRelayStatusesChanged);
+
+    _hydrateInitialData();
+    _connectMqtt();
+
+    _pollingTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        _fetchPondDetail();
+      }
+    });
 
 
 
@@ -137,7 +324,12 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _sensorDataSubscription?.cancel();
+    globalMqttManager.relayStatuses.removeListener(_onRelayStatusesChanged);
+    for (final timer in _relayTimers.values) {
+      timer.cancel();
+    }
     globalMqttManager.disconnect();
     super.dispose();
   }
@@ -149,14 +341,10 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
     return BlocListener<KolamBloc, KolamState>(
       listener: (context, state) {
         if (state is KolamDeleteSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Kolam berhasil dihapus')),
-          );
+          ToastHelper.showSuccess('Kolam berhasil dihapus');
           Navigator.pop(context); // Go back after delete
         } else if (state is KolamError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
-          );
+          ToastHelper.showError(state.message);
         }
       },
       child: Scaffold(
@@ -247,14 +435,9 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                               MaterialPageRoute(
                                 builder: (context) => AddKolamScreen(kolamToEdit: _currentKolam),
                               ),
-                            ).then((updatedKolam) {
-                              if (context.mounted && updatedKolam != null && updatedKolam is KolamEntity) {
-                                setState(() {
-                                  _currentKolam = updatedKolam;
-                                  if (_currentKolam.mqttId != null && _currentKolam.mqttId!.isNotEmpty) {
-                                    globalMqttManager.connect(_currentKolam.mqttId!);
-                                  }
-                                });
+                            ).then((_) {
+                              if (mounted) {
+                                _fetchPondDetail();
                               }
                             });
                           } else if (value == 'threshold') {
@@ -266,7 +449,11 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                                   pondName: _currentKolam.nama,
                                 ),
                               ),
-                            );
+                            ).then((_) {
+                              if (mounted) {
+                                _fetchPondDetail();
+                              }
+                            });
                           } else if (value == 'calibration') {
                             Navigator.push(
                               context,
@@ -276,7 +463,11 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                                   pondName: _currentKolam.nama,
                                 ),
                               ),
-                            );
+                            ).then((_) {
+                              if (mounted) {
+                                _fetchPondDetail();
+                              }
+                            });
                           } else if (value == 'delete') {
                             showDialog(
                               context: context,
@@ -324,24 +515,26 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                   flexibleSpace: FlexibleSpaceBar(
                     background: Builder(
                       builder: (context) {
-                        final images = [
-                          'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
-                          'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80',
-                          'https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=600&q=80',
-                          'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
-                        ];
-                        final defaultImageUrl = images[_currentKolam.id % images.length];
-                        final imageUrl = _currentKolam.imageUrl ?? defaultImageUrl;
-                        return Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
+                        final imageUrl = _currentKolam.imageUrl;
+                        if (imageUrl != null && imageUrl.isNotEmpty) {
+                          return Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: const Color(0xFF131B2E),
+                              child: const Center(
+                                child: Icon(Icons.water, color: Color(0xFF6CD3F7), size: 50),
+                              ),
+                            ),
+                          );
+                        } else {
+                          return Container(
                             color: const Color(0xFF131B2E),
                             child: const Center(
                               child: Icon(Icons.water, color: Color(0xFF6CD3F7), size: 50),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
                     ),
                   ),
@@ -352,14 +545,41 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          _currentKolam.nama.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFFDAE2FD),
-                            letterSpacing: 0.5,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _currentKolam.nama.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFFDAE2FD),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            if (_currentKolam.doc != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6CD3F7).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFF6CD3F7).withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  'DOC: ${_currentKolam.doc} Hari',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF6CD3F7),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -475,17 +695,13 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                         GestureDetector(
                           onTap: () async {
                             try {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Menyiapkan laporan PDF...')),
-                              );
+                              ToastHelper.showSuccess('Menyiapkan laporan PDF...');
                               final dataSource = LaporanRemoteDataSourceImpl(apiClient: globalApiClient);
                               final data = await dataSource.getLaporan(_currentKolam.id);
                               await PdfGeneratorService.generateAndPrintKolamReport(data);
                             } catch (e) {
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Gagal membuat laporan: $e')),
-                                );
+                                ToastHelper.showError('Gagal membuat laporan: $e');
                               }
                             }
                           },
@@ -520,14 +736,21 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => LogInputScreen(kolam: _currentKolam),
+                                builder: (context) => ReportWebViewScreen(
+                                  title: 'Pencatatan Panen',
+                                  url: '${ApiConfig.webUrl}/admin/panen',
+                                ),
                               ),
-                            );
+                            ).then((_) {
+                              if (mounted) {
+                                _fetchPondDetail();
+                              }
+                            });
                           },
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF2E3192), Color(0xFF1B1464)],
+                                colors: [Color(0xFFE11D48), Color(0xFF9F1239)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -539,11 +762,128 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.edit_document, color: Colors.white),
+                                Icon(Icons.set_meal, color: Colors.white),
                                 SizedBox(width: 8),
                                 Text(
-                                  'Input Log Harian',
+                                  'Pencatatan Panen',
                                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ReportWebViewScreen(
+                                  title: 'Manajemen Pakan',
+                                  url: '${ApiConfig.webUrl}/admin/pakan',
+                                ),
+                              ),
+                            ).then((_) {
+                              if (mounted) {
+                                _fetchPondDetail();
+                              }
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0D9488), Color(0xFF115E59)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            alignment: Alignment.center,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.restaurant_menu, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Manajemen Pakan',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ReportWebViewScreen(
+                                  title: 'Sampling Udang',
+                                  url: '${ApiConfig.webUrl}/admin/sampling',
+                                ),
+                              ),
+                            ).then((_) {
+                              if (mounted) {
+                                _fetchPondDetail();
+                              }
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF8B5CF6), Color(0xFF5B21B6)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            alignment: Alignment.center,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.analytics_rounded, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Sampling Udang',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: _currentKolam.statusSiklus == 'aktif' ? _endBudidayaCycle : _startBudidayaCycle,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: _currentKolam.statusSiklus == 'aktif'
+                                    ? [const Color(0xFFDC2626), const Color(0xFF991B1B)]
+                                    : [const Color(0xFF16A34A), const Color(0xFF166534)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _currentKolam.statusSiklus == 'aktif' ? Icons.stop_circle : Icons.play_circle_fill,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _currentKolam.statusSiklus == 'aktif' ? 'Akhiri Siklus Budidaya' : 'Mulai Siklus Budidaya',
+                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                                 ),
                               ],
                             ),
@@ -581,10 +921,34 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
-                                      for (int i = 0; i < _currentKolam.relays.length; i++) {
-                                        if (_currentKolam.mqttId != null) {
-                                          globalMqttManager.publishRelayControl(_currentKolam.mqttId!, i + 1, true);
-                                        }
+                                      if (!globalMqttManager.isConnected) {
+                                        ErrorHandler.showNetworkErrorSnackbar(context);
+                                        return;
+                                      }
+                                      if (_currentKolam.mqttId != null) {
+                                        setState(() {
+                                          for (int i = 0; i < _currentKolam.relays.length; i++) {
+                                            final relayIndexStr = '${i + 1}';
+                                            _pendingRelays[relayIndexStr] = true;
+                                            globalMqttManager.publishRelayControl(_currentKolam.mqttId!, i + 1, true);
+
+                                            _relayTimers[relayIndexStr]?.cancel();
+                                            _relayTimers[relayIndexStr] = Timer(
+                                              const Duration(seconds: 5),
+                                              () {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _pendingRelays.remove(relayIndexStr);
+                                                    _relayTimers.remove(relayIndexStr);
+                                                  });
+                                                  ToastHelper.showError(
+                                                    'Beberapa perangkat tidak merespon.',
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          }
+                                        });
                                       }
                                     },
                                     child: Container(
@@ -611,10 +975,34 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
-                                      for (int i = 0; i < _currentKolam.relays.length; i++) {
-                                        if (_currentKolam.mqttId != null) {
-                                          globalMqttManager.publishRelayControl(_currentKolam.mqttId!, i + 1, false);
-                                        }
+                                      if (!globalMqttManager.isConnected) {
+                                        ErrorHandler.showNetworkErrorSnackbar(context);
+                                        return;
+                                      }
+                                      if (_currentKolam.mqttId != null) {
+                                        setState(() {
+                                          for (int i = 0; i < _currentKolam.relays.length; i++) {
+                                            final relayIndexStr = '${i + 1}';
+                                            _pendingRelays[relayIndexStr] = false;
+                                            globalMqttManager.publishRelayControl(_currentKolam.mqttId!, i + 1, false);
+
+                                            _relayTimers[relayIndexStr]?.cancel();
+                                            _relayTimers[relayIndexStr] = Timer(
+                                              const Duration(seconds: 5),
+                                              () {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _pendingRelays.remove(relayIndexStr);
+                                                    _relayTimers.remove(relayIndexStr);
+                                                  });
+                                                  ToastHelper.showError(
+                                                    'Beberapa perangkat tidak merespon.',
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          }
+                                        });
                                       }
                                     },
                                     child: Container(
@@ -663,13 +1051,46 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                             ),
                             itemBuilder: (context, index) {
                               final relayIndexStr = '${index + 1}';
-                              final isOn = relayStatuses[relayIndexStr] ?? false;
+                              final actualStatus = relayStatuses[relayIndexStr] ?? false;
+                              final isPending = _pendingRelays.containsKey(relayIndexStr);
+                              final isOn = isPending ? _pendingRelays[relayIndexStr]! : actualStatus;
+
                               return GestureDetector(
-                                onTap: () {
-                                  if (_currentKolam.mqttId != null) {
-                                    globalMqttManager.publishRelayControl(_currentKolam.mqttId!, index + 1, !isOn);
-                                  }
-                                },
+                                onTap: isPending
+                                    ? null
+                                    : () {
+                                        if (!globalMqttManager.isConnected) {
+                                          ErrorHandler.showNetworkErrorSnackbar(context);
+                                          return;
+                                        }
+                                        if (_currentKolam.mqttId != null) {
+                                          final targetState = !isOn;
+                                          setState(() {
+                                            _pendingRelays[relayIndexStr] = targetState;
+                                          });
+                                          globalMqttManager.publishRelayControl(
+                                            _currentKolam.mqttId!,
+                                            index + 1,
+                                            targetState,
+                                          );
+
+                                          _relayTimers[relayIndexStr]?.cancel();
+                                          _relayTimers[relayIndexStr] = Timer(
+                                            const Duration(seconds: 5),
+                                            () {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _pendingRelays.remove(relayIndexStr);
+                                                  _relayTimers.remove(relayIndexStr);
+                                                });
+                                                ToastHelper.showError(
+                                                  'Perangkat tidak merespon. Perintah dibatalkan.',
+                                                );
+                                              }
+                                            },
+                                          );
+                                        }
+                                      },
                                 child: Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),
@@ -708,10 +1129,20 @@ class _PondDetailScreenState extends State<PondDetailScreen> {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          Icon(
-                                            isOn ? Icons.power : Icons.power_off,
-                                            color: isOn ? const Color(0xFF6CD3F7) : Colors.white24,
-                                          ),
+                                          isPending
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Color(0xFF6CD3F7),
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  isOn ? Icons.power : Icons.power_off,
+                                                  color: isOn ? const Color(0xFF6CD3F7) : const Color(0xFFDAE2FD).withOpacity(0.4),
+                                                  size: 24,
+                                                ),
                                         ],
                                       ),
                                     ),

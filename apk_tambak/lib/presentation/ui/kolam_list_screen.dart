@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import '../../core/constants/app_colors.dart';
 import '../bloc/kolam_bloc.dart';
 import '../bloc/kolam_event.dart';
 import '../bloc/kolam_state.dart';
 import '../../domain/entities/kolam_entity.dart';
 import 'pond_detail_screen.dart';
-import 'profile_screen.dart';
+import 'settings_screen.dart';
 import 'add_kolam_screen.dart';
+import '../../core/utils/error_handler.dart';
 
 import '../widgets/liquid_glass_card.dart';
 
@@ -19,10 +21,24 @@ class KolamListScreen extends StatefulWidget {
 }
 
 class _KolamListScreenState extends State<KolamListScreen> {
+  Timer? _pollingTimer;
+  List<KolamEntity>? _cachedKolams;
+
   @override
   void initState() {
     super.initState();
     context.read<KolamBloc>().add(FetchKolams());
+    _pollingTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        context.read<KolamBloc>().add(FetchKolams());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -52,7 +68,7 @@ class _KolamListScreenState extends State<KolamListScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
                         );
                       },
                       child: Container(
@@ -88,37 +104,63 @@ class _KolamListScreenState extends State<KolamListScreen> {
               
               // List
               Expanded(
-                child: BlocBuilder<KolamBloc, KolamState>(
+                child: BlocConsumer<KolamBloc, KolamState>(
+                  listener: (context, state) {
+                    if (state is KolamError) {
+                      ErrorHandler.handleError(context, state.message);
+                    } else if (state is KolamLoaded) {
+                      _cachedKolams = state.kolams;
+                    }
+                  },
                   builder: (context, state) {
-                    if (state is KolamLoading || state is KolamInitial) {
+                    if (state is KolamLoading && _cachedKolams == null) {
                       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-                    } else if (state is KolamError) {
+                    }
+
+                    if (_cachedKolams != null) {
+                      final kolams = _cachedKolams!;
+                      return RefreshIndicator(
+                        color: const Color(0xFF6CD3F7),
+                        backgroundColor: const Color(0xFF131B2E),
+                        onRefresh: () async {
+                          context.read<KolamBloc>().add(FetchKolams());
+                        },
+                        child: kolams.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: const [
+                                  SizedBox(height: 100),
+                                  Center(
+                                    child: Text(
+                                      'Belum ada data kolam.',
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                itemCount: kolams.length,
+                                itemBuilder: (context, index) {
+                                  return _buildKolamCard(kolams[index]);
+                                },
+                              ),
+                      );
+                    }
+
+                    if (state is KolamError) {
                       return Center(
                         child: Text(
-                          state.message,
+                          ErrorHandler.isNetworkError(state.message)
+                              ? 'Gagal memproses data. Periksa koneksi internet Anda.'
+                              : state.message,
                           style: const TextStyle(color: AppColors.error, fontSize: 16),
                         ),
                       );
-                    } else if (state is KolamLoaded) {
-                      final kolams = state.kolams;
-                      if (kolams.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'Belum ada data kolam.',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        itemCount: kolams.length,
-                        itemBuilder: (context, index) {
-                          return _buildKolamCard(kolams[index]);
-                        },
-                      );
                     }
-                    return const SizedBox.shrink();
+
+                    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
                   },
                 ),
               ),
@@ -155,13 +197,7 @@ class _KolamListScreenState extends State<KolamListScreen> {
   }
 
   Widget _buildKolamCard(KolamEntity kolam) {
-    final images = [
-      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
-      'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80',
-      'https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=600&q=80',
-      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
-    ];
-    final imageUrl = images[kolam.id % images.length];
+    final imageUrl = kolam.imageUrl;
 
     return LiquidGlassCard(
       margin: const EdgeInsets.only(bottom: 20),
@@ -174,16 +210,23 @@ class _KolamListScreenState extends State<KolamListScreen> {
               SizedBox(
                 height: 160,
                 width: double.infinity,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: const Color(0xFF6CD3F7).withOpacity(0.2),
-                    child: const Center(
-                      child: Icon(Icons.water, color: Color(0xFF6CD3F7), size: 50),
-                    ),
-                  ),
-                ),
+                child: imageUrl != null && imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: const Color(0xFF131B2E),
+                          child: const Center(
+                            child: Icon(Icons.water, color: Color(0xFF6CD3F7), size: 50),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: const Color(0xFF131B2E),
+                        child: const Center(
+                          child: Icon(Icons.water, color: Color(0xFF6CD3F7), size: 50),
+                        ),
+                      ),
               ),
               // Status Chip on top-right of image
               Positioned(
@@ -229,13 +272,40 @@ class _KolamListScreenState extends State<KolamListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  kolam.nama,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFDAE2FD),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        kolam.nama,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFDAE2FD),
+                        ),
+                      ),
+                    ),
+                    if (kolam.doc != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6CD3F7).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF6CD3F7).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          'DOC: ${kolam.doc} Hari',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF6CD3F7),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 14),
                 Row(

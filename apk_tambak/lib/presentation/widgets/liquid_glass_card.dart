@@ -6,6 +6,7 @@ class LiquidGlassCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
+  final Border? border;
 
   const LiquidGlassCard({
     super.key,
@@ -13,42 +14,24 @@ class LiquidGlassCard extends StatelessWidget {
     this.borderRadius,
     this.padding,
     this.margin,
+    this.border,
   });
 
   @override
   Widget build(BuildContext context) {
-    final effectiveRadius = borderRadius ?? BorderRadius.circular(24);
+    final effectiveRadius = borderRadius ?? BorderRadius.circular(16);
     return Container(
       margin: margin,
+      padding: padding,
       decoration: BoxDecoration(
+        color: const Color(0xFF131B2E),
         borderRadius: effectiveRadius,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6CD3F7).withOpacity(0.12),
-            blurRadius: 40,
-            spreadRadius: -20,
-            offset: const Offset(0, 40),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: effectiveRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: effectiveRadius,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: child,
-          ),
+        border: border ?? Border.all(
+          color: const Color(0xFF1E293B),
+          width: 1,
         ),
       ),
+      child: child,
     );
   }
 }

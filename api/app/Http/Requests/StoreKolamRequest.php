@@ -22,14 +22,17 @@ class StoreKolamRequest
     public function rules()
     {
         return [
-            'pemilik' => 'required|integer|exists:users,id',
+            'pemilik' => 'nullable|integer|exists:users,id',
             'nama_kolam' => 'required|string|max:255|unique:kolams,nama_kolam',
-            'mqtt_id' => 'nullable|string|max:255',
-            'lat' => 'nullable|numeric',
-            'long' => 'nullable|numeric',
-            'status' => 'required|in:0,1,2',
-            'luas_kolam' => 'nullable|numeric',
-            'detail_udang' => 'nullable|string',
+            'id_mqtt' => 'required|string|max:255',
+            'luas' => 'required|numeric',
+            'detail_udang' => 'required|string',
+            'lat' => 'required|numeric',
+            'long' => 'required|numeric',
+            'status' => 'required',
+            'relays' => 'required|array',
+            'relays.*' => 'required|string',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ];
     }
 }

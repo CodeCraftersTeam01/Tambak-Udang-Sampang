@@ -11,26 +11,33 @@ class MonitoringController extends Controller
     {
         $pondId = (int) $request->query('pond_id', 1);
 
+        $pond = DB::table('kolams')->where('id', $pondId)->first();
+        if (!$pond) {
+            return response()->json(['success' => false, 'message' => 'Pond not found'], 404);
+        }
+
+        // Calculate DOC if active
+        $doc = null;
+        if ($pond->status_siklus === 'aktif' && $pond->tanggal_tebar) {
+            $now = \Carbon\Carbon::now()->startOfDay();
+            $tebar = \Carbon\Carbon::parse($pond->tanggal_tebar)->startOfDay();
+            $diff = $tebar->diffInDays($now, false);
+            $doc = $diff < 0 ? 0 : (int) $diff;
+        }
+
         $rows = DB::select("
             SELECT
                 st.code,
                 st.name,
                 sr.value,
                 sr.unit,
-                COALESCE(th.min_value, st.normal_min) AS min,
-                COALESCE(th.max_value, st.normal_max) AS max,
                 sr.recorded_at,
                 s.id AS sensor_id,
                 s.sensor_code
             FROM sensors s
             JOIN sensor_types st ON st.id = s.sensor_type_id
             JOIN devices d ON d.id = s.device_id
-            LEFT JOIN sensor_thresholds th
-                ON th.sensor_type_id = st.id
-                AND th.pond_id = d.pond_id
-                AND th.is_active = 1
-            JOIN sensor_readings sr
-                ON sr.sensor_id = s.id
+            JOIN sensor_readings sr ON sr.sensor_id = s.id
             WHERE d.pond_id = ?
             AND sr.id = (
                 SELECT sr2.id
@@ -42,23 +49,60 @@ class MonitoringController extends Controller
             ORDER BY st.id ASC
         ", [$pondId]);
 
+        $sensorsData = [];
+        foreach ($rows as $row) {
+            $minVal = null;
+            $maxVal = null;
+
+            // Load phase threshold only if cycle is active and rule matches DOC
+            if ($doc !== null) {
+                // Find matching rule: doc_start <= doc and (doc_end >= doc or doc_end is null)
+                // Order by doc_start DESC to pick the closest phase boundary
+                $threshold = DB::table('sensor_thresholds')
+                    ->where('pond_id', $pondId)
+                    ->where('sensor_type', $row->code)
+                    ->where('doc_start', '<=', $doc)
+                    ->where(function ($q) use ($doc) {
+                        $q->where('doc_end', '>=', $doc)
+                          ->orWhereNull('doc_end');
+                    })
+                    ->orderBy('doc_start', 'desc')
+                    ->first();
+
+                if ($threshold) {
+                    $minVal = $threshold->min_value !== null ? (float) $threshold->min_value : null;
+                    $maxVal = $threshold->max_value !== null ? (float) $threshold->max_value : null;
+                }
+            }
+
+            // Fallback to sensor type defaults if no active cycle threshold is set
+            if ($minVal === null && $maxVal === null) {
+                $sensorType = DB::table('sensor_types')->where('code', $row->code)->first();
+                if ($sensorType) {
+                    $minVal = $sensorType->normal_min !== null ? (float) $sensorType->normal_min : null;
+                    $maxVal = $sensorType->normal_max !== null ? (float) $sensorType->normal_max : null;
+                }
+            }
+
+            $sensorsData[] = [
+                'code' => $row->code,
+                'name' => $row->name,
+                'value' => (float) $row->value,
+                'unit' => $row->unit,
+                'min' => $minVal,
+                'max' => $maxVal,
+                'recorded_at' => $row->recorded_at,
+                'sensor_id' => (int) $row->sensor_id,
+                'sensor_code' => $row->sensor_code,
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'pond_id' => $pondId,
-                'sensors' => array_map(function ($row) {
-                    return [
-                        'code' => $row->code,
-                        'name' => $row->name,
-                        'value' => (float) $row->value,
-                        'unit' => $row->unit,
-                        'min' => $row->min !== null ? (float) $row->min : null,
-                        'max' => $row->max !== null ? (float) $row->max : null,
-                        'recorded_at' => $row->recorded_at,
-                        'sensor_id' => (int) $row->sensor_id,
-                        'sensor_code' => $row->sensor_code,
-                    ];
-                }, $rows),
+                'doc' => $doc,
+                'sensors' => $sensorsData,
             ],
         ]);
     }

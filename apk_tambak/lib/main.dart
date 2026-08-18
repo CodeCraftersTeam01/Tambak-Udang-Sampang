@@ -13,6 +13,7 @@ import 'presentation/bloc/auth_event.dart';
 import 'presentation/bloc/kolam_bloc.dart';
 import 'presentation/bloc/kolam_event.dart';
 import 'presentation/ui/login_screen.dart';
+import 'core/constants/app_colors.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -196,12 +197,16 @@ class MyApp extends StatelessWidget {
         navigatorKey: navigatorKey,
         title: 'Tambak Udang',
         theme: ThemeData(
-          scaffoldBackgroundColor: const Color(0xFF0B1326), // Dark Navy
-          primaryColor: const Color(0xFF6CD3F7), // Cyan
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: AppColors.background,
+          primaryColor: AppColors.primary,
           colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF6CD3F7),
-            surface: Color(0xFF131B2E),
-            onSurface: Color(0xFFDAE2FD),
+            primary: AppColors.primary,
+            secondary: AppColors.secondary,
+            surface: AppColors.surface,
+            background: AppColors.background,
+            onSurface: AppColors.textPrimary,
+            error: AppColors.error,
           ),
           useMaterial3: true,
           fontFamily: 'Roboto',
@@ -214,6 +219,62 @@ class MyApp extends StatelessWidget {
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            iconTheme: IconThemeData(color: Colors.white),
+            titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          cardTheme: const CardThemeData(
+            color: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+              side: BorderSide(color: AppColors.border, width: 1),
+            ),
+            elevation: 0,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6CD3F7),
+              foregroundColor: const Color(0xFF0B1326),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: AppColors.surface,
+            labelStyle: const TextStyle(color: AppColors.textSecondary),
+            hintStyle: const TextStyle(color: AppColors.textSecondary),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error, width: 2),
+            ),
+          ),
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+            backgroundColor: AppColors.surface,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.textSecondary,
+            type: BottomNavigationBarType.fixed,
+            elevation: 8,
           ),
         ),
         home: const LoginScreen(),

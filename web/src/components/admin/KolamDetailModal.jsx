@@ -113,6 +113,17 @@ export default function KolamDetailModal({ open, kolam, onClose }) {
             </Box>
           </Box>
 
+          {kolam.image_url && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Foto Kolam</Typography>
+              <img 
+                src={kolam.image_url} 
+                alt={kolam.nama_kolam} 
+                style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
+              />
+            </Box>
+          )}
+
           {/* SENSOR MONITORING */}
           <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.1)', pb: 1 }}>
             Real-time Monitoring {loading && <span style={{ fontSize: 12, fontWeight: 'normal', color: '#86868b' }}>(Memuat...)</span>}

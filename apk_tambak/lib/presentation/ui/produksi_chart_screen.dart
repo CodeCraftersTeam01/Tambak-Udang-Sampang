@@ -48,13 +48,9 @@ class _ProduksiChartScreenState extends State<ProduksiChartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Grafik Pertumbuhan', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
+        title: const Text('Grafik Pertumbuhan'),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: _buildBody(),
     );
@@ -86,9 +82,9 @@ class _ProduksiChartScreenState extends State<ProduksiChartScreen> {
             height: 250,
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: const Color(0xFF131B2E),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
+                border: Border.all(color: const Color(0xFF1E293B)),
               ),
               padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 24),
               child: CustomPaint(
@@ -117,25 +113,21 @@ class _ProduksiChartScreenState extends State<ProduksiChartScreen> {
                 final mortality = log['mortality_ekor']?.toString() ?? '0';
 
                 return Card(
-                  color: AppColors.surface,
                   margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 2,
-                  shadowColor: Colors.black12,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tanggal: $dateStr', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        Text('Tanggal: $dateStr', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6CD3F7))),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 16.0,
                           runSpacing: 4.0,
                           children: [
-                            Text('MBW: $mbw g', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                            Text('Pakan: $pakan Kg', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                            Text('Mati: $mortality Ekor', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                            Text('MBW: $mbw g', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                            Text('Pakan: $pakan Kg', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                            Text('Mati: $mortality Ekor', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
                           ],
                         )
                       ],
@@ -172,7 +164,7 @@ class _LineChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final paintGrid = Paint()
-      ..color = Colors.grey.shade300
+      ..color = const Color(0xFF1E293B)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
